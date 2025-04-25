@@ -1,0 +1,35 @@
+[gd_scene load_steps=5 format=3 uid="uid://bcfmhvodla6wg"]
+
+[ext_resource type="PackedScene" uid="uid://q5ggxlcdrid3" path="res://Player/player.tscn" id="1_gojnm"]
+[ext_resource type="PackedScene" uid="uid://fvb45fjuy6tv" path="res://Bosses/calculator.tscn" id="2_1c2mv"]
+[ext_resource type="PackedScene" uid="uid://bbnfor0ukd3y1" path="res://UI/GameUI.tscn" id="3_f7g2b"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1c2mv"]
+size = Vector2(1780, 42)
+
+[node name="TestLevel" type="Node2D"]
+
+[node name="Ground" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+position = Vector2(274, 58)
+shape = SubResource("RectangleShape2D_1c2mv")
+
+[node name="ColorRect" type="ColorRect" parent="Ground"]
+offset_left = -615.0
+offset_top = 39.0
+offset_right = 1157.0
+offset_bottom = 79.0
+color = Color(0.205117, 0.205117, 0.205117, 1)
+
+[node name="GameUI" parent="." groups=["game_ui"] instance=ExtResource("3_f7g2b")]
+
+[node name="Player" parent="." groups=["player"] instance=ExtResource("1_gojnm")]
+position = Vector2(48, -89)
+scale = Vector2(0.2, 0.2)
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+
+[node name="Calculator" parent="." groups=["enemies"] instance=ExtResource("2_1c2mv")]
+position = Vector2(468, -206)
+scale = Vector2(0.5, 0.5)
