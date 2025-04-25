@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://cxqo2g7g1pkgn"
+path="res://.godot/imported/Breathy Grunt 2.wav-fac079229d22ed407aee576b8ee459a1.sample"
+
+[deps]
+
+source_file="res://Player/Sounds/Breathy Grunt 2.wav"
+dest_files=["res://.godot/imported/Breathy Grunt 2.wav-fac079229d22ed407aee576b8ee459a1.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

@@ -1,21 +1,42 @@
-[gd_scene load_steps=5 format=3 uid="uid://bcfmhvodla6wg"]
+[gd_scene load_steps=9 format=3 uid="uid://bcfmhvodla6wg"]
 
 [ext_resource type="PackedScene" uid="uid://q5ggxlcdrid3" path="res://Player/player.tscn" id="1_gojnm"]
-[ext_resource type="PackedScene" uid="uid://fvb45fjuy6tv" path="res://Bosses/calculator.tscn" id="2_1c2mv"]
+[ext_resource type="PackedScene" uid="uid://fvb45fjuy6tv" path="res://Enemies/Bosses/Calculator/calculator.tscn" id="2_1c2mv"]
 [ext_resource type="PackedScene" uid="uid://bbnfor0ukd3y1" path="res://UI/GameUI.tscn" id="3_f7g2b"]
+[ext_resource type="AudioStream" uid="uid://bd63b2jw0k2sr" path="res://Enemies/Bosses/Calculator/Sounds/Multiple Button Presses (Fast).wav" id="4_gbhdq"]
+[ext_resource type="AudioStream" uid="uid://bd4fh4ebradh4" path="res://Enemies/Bosses/Calculator/Sounds/Multiple Button Presses (Long).wav" id="5_y646j"]
+[ext_resource type="AudioStream" uid="uid://dr05jjeldacqi" path="res://Enemies/Bosses/Calculator/Sounds/Multiple Button Presses (Fast) 2.wav" id="6_lnbra"]
+[ext_resource type="Texture2D" uid="uid://cfhy2k6hk80n" path="res://math_grid.png" id="7_y646j"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1c2mv"]
-size = Vector2(1780, 42)
+size = Vector2(1771, 41)
 
 [node name="TestLevel" type="Node2D"]
 
 [node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(0, 186)
+collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
-position = Vector2(274, 58)
+position = Vector2(271.5, 58.5)
 shape = SubResource("RectangleShape2D_1c2mv")
 
 [node name="ColorRect" type="ColorRect" parent="Ground"]
+offset_left = -615.0
+offset_top = 39.0
+offset_right = 1157.0
+offset_bottom = 79.0
+color = Color(0.205117, 0.205117, 0.205117, 1)
+
+[node name="Ground2" type="StaticBody2D" parent="."]
+position = Vector2(-1000, 282)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground2"]
+position = Vector2(271.5, 58.5)
+shape = SubResource("RectangleShape2D_1c2mv")
+
+[node name="ColorRect" type="ColorRect" parent="Ground2"]
 offset_left = -615.0
 offset_top = 39.0
 offset_right = 1157.0
@@ -26,10 +47,30 @@ color = Color(0.205117, 0.205117, 0.205117, 1)
 
 [node name="Player" parent="." groups=["player"] instance=ExtResource("1_gojnm")]
 position = Vector2(48, -89)
-scale = Vector2(0.2, 0.2)
+scale = Vector2(0.1, 0.1)
+speed = 300.0
+jump_velocity = -320.0
+roll_speed = 380.0
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
 
 [node name="Calculator" parent="." groups=["enemies"] instance=ExtResource("2_1c2mv")]
-position = Vector2(468, -206)
+position = Vector2(497, -102)
 scale = Vector2(0.5, 0.5)
+max_hp = 250
+speed = 80.0
+detection_radius = 450.0
+protractor_slice_range = 75.0
+buff_chance = 0.35
+buff_sounds = Array[AudioStream]([ExtResource("4_gbhdq"), ExtResource("5_y646j"), ExtResource("6_lnbra")])
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+
+[node name="ParallaxLayer" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2(0.7, 0.8)
+
+[node name="GridSprite" type="Sprite2D" parent="ParallaxBackground/ParallaxLayer"]
+texture_repeat = 2
+texture = ExtResource("7_y646j")
+region_enabled = true
+region_rect = Rect2(0, 0, 4000, 3000)

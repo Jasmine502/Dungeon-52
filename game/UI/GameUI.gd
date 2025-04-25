@@ -21,7 +21,7 @@ func _ready() -> void:
 	if is_instance_valid(player_stamina_bar): player_stamina_bar.value = player_stamina_bar.max_value
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	# Try connecting to player only if not already connected
 	if not player_connected:
 		attempt_player_connection()

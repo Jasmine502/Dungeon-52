@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://c7jdpmovcxb68"
+path="res://.godot/imported/Single Button Press.wav-acf39fff08c318e1b181befa24832aae.sample"
+
+[deps]
+
+source_file="res://Enemies/Bosses/Calculator/Sounds/Single Button Press.wav"
+dest_files=["res://.godot/imported/Single Button Press.wav-acf39fff08c318e1b181befa24832aae.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

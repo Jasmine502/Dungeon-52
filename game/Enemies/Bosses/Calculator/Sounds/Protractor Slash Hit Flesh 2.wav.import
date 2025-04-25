@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://d4ix18who51fj"
+path="res://.godot/imported/Protractor Slash Hit Flesh 2.wav-e86baa7e83116a7c1b34f06a4762bd24.sample"
+
+[deps]
+
+source_file="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash Hit Flesh 2.wav"
+dest_files=["res://.godot/imported/Protractor Slash Hit Flesh 2.wav-e86baa7e83116a7c1b34f06a4762bd24.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2
