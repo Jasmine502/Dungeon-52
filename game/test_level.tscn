@@ -1,12 +1,32 @@
-[gd_scene load_steps=9 format=3 uid="uid://bcfmhvodla6wg"]
+[gd_scene load_steps=29 format=3 uid="uid://bcfmhvodla6wg"]
 
 [ext_resource type="PackedScene" uid="uid://q5ggxlcdrid3" path="res://Player/player.tscn" id="1_gojnm"]
 [ext_resource type="PackedScene" uid="uid://fvb45fjuy6tv" path="res://Enemies/Bosses/Calculator/calculator.tscn" id="2_1c2mv"]
+[ext_resource type="AudioStream" uid="uid://dsmtpd0abgc2h" path="res://Player/Sounds/Sword Whoosh 1.wav" id="3_0dbuy"]
 [ext_resource type="PackedScene" uid="uid://bbnfor0ukd3y1" path="res://UI/GameUI.tscn" id="3_f7g2b"]
+[ext_resource type="AudioStream" uid="uid://igxcuhg80uay" path="res://Player/Sounds/Sword Whoosh 2.wav" id="4_f55p2"]
 [ext_resource type="AudioStream" uid="uid://bd63b2jw0k2sr" path="res://Enemies/Bosses/Calculator/Sounds/Multiple Button Presses (Fast).wav" id="4_gbhdq"]
+[ext_resource type="AudioStream" uid="uid://cgh87mw86p1vw" path="res://Player/Sounds/Sword Whoosh 3.wav" id="5_kvxjt"]
 [ext_resource type="AudioStream" uid="uid://bd4fh4ebradh4" path="res://Enemies/Bosses/Calculator/Sounds/Multiple Button Presses (Long).wav" id="5_y646j"]
 [ext_resource type="AudioStream" uid="uid://dr05jjeldacqi" path="res://Enemies/Bosses/Calculator/Sounds/Multiple Button Presses (Fast) 2.wav" id="6_lnbra"]
+[ext_resource type="AudioStream" uid="uid://7vpw20gekbkq" path="res://Player/Sounds/Sword Whoosh 4.wav" id="6_rptwa"]
+[ext_resource type="AudioStream" uid="uid://siwo6xvwqkqe" path="res://Player/Sounds/Breathy Grunt.wav" id="7_dny34"]
 [ext_resource type="Texture2D" uid="uid://cfhy2k6hk80n" path="res://math_grid.png" id="7_y646j"]
+[ext_resource type="AudioStream" uid="uid://cxqo2g7g1pkgn" path="res://Player/Sounds/Breathy Grunt 2.wav" id="8_bxgge"]
+[ext_resource type="AudioStream" uid="uid://g6klj8441sd" path="res://Player/Sounds/Breathy Hm.wav" id="9_rmf6y"]
+[ext_resource type="AudioStream" uid="uid://fhya21ftnax4" path="res://Player/Sounds/Jump Grunt.wav" id="10_mebjf"]
+[ext_resource type="AudioStream" uid="uid://h3388xsyhqmh" path="res://Player/Sounds/Ahh.wav" id="11_sxacm"]
+[ext_resource type="AudioStream" uid="uid://cnb4t7dctnwii" path="res://Player/Sounds/Ahh 2.wav" id="12_x0e4d"]
+[ext_resource type="AudioStream" uid="uid://chdac1bfnbs6k" path="res://Player/Sounds/Mmm Hurt.wav" id="13_yisjc"]
+[ext_resource type="AudioStream" uid="uid://bggs60raf24cw" path="res://Player/Sounds/Fuck.wav" id="14_hmau8"]
+[ext_resource type="AudioStream" uid="uid://b7fwm7xyygg8s" path="res://Player/Sounds/Death 1.wav" id="15_ce8rq"]
+[ext_resource type="AudioStream" uid="uid://cavo32qh04amo" path="res://Player/Sounds/Death 2.wav" id="16_mpyyl"]
+[ext_resource type="AudioStream" uid="uid://cgxg3d06nx53h" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash.wav" id="18_bxgge"]
+[ext_resource type="AudioStream" uid="uid://dcrpo4p6nhq0w" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash Hit Flesh 1.wav" id="19_rmf6y"]
+[ext_resource type="AudioStream" uid="uid://d4ix18who51fj" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash Hit Flesh 2.wav" id="20_mebjf"]
+[ext_resource type="AudioStream" uid="uid://3l4od8hstjrd" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash Hit Flesh 3.wav" id="21_sxacm"]
+[ext_resource type="AudioStream" uid="uid://4ep8s7yuppgv" path="res://Enemies/Bosses/Calculator/Sounds/Pencil Jab Hit Flesh.wav" id="22_rmf6y"]
+[ext_resource type="AudioStream" uid="uid://b2dgm78wuikpu" path="res://Enemies/Bosses/Calculator/Sounds/Calculator Death.wav" id="25_x0e4d"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1c2mv"]
 size = Vector2(1771, 41)
@@ -28,21 +48,6 @@ offset_right = 1157.0
 offset_bottom = 79.0
 color = Color(0.205117, 0.205117, 0.205117, 1)
 
-[node name="Ground2" type="StaticBody2D" parent="."]
-position = Vector2(-1000, 282)
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground2"]
-position = Vector2(271.5, 58.5)
-shape = SubResource("RectangleShape2D_1c2mv")
-
-[node name="ColorRect" type="ColorRect" parent="Ground2"]
-offset_left = -615.0
-offset_top = 39.0
-offset_right = 1157.0
-offset_bottom = 79.0
-color = Color(0.205117, 0.205117, 0.205117, 1)
-
 [node name="GameUI" parent="." groups=["game_ui"] instance=ExtResource("3_f7g2b")]
 
 [node name="Player" parent="." groups=["player"] instance=ExtResource("1_gojnm")]
@@ -51,6 +56,11 @@ scale = Vector2(0.1, 0.1)
 speed = 300.0
 jump_velocity = -320.0
 roll_speed = 380.0
+attack_sounds = Array[AudioStream]([ExtResource("3_0dbuy"), ExtResource("4_f55p2"), ExtResource("5_kvxjt"), ExtResource("6_rptwa")])
+attack_grunts = Array[AudioStream]([ExtResource("7_dny34"), ExtResource("8_bxgge"), ExtResource("9_rmf6y")])
+jump_grunt_sounds = Array[AudioStream]([ExtResource("10_mebjf")])
+damage_grunt_sounds = Array[AudioStream]([ExtResource("11_sxacm"), ExtResource("12_x0e4d"), ExtResource("13_yisjc"), ExtResource("14_hmau8")])
+death_sounds = Array[AudioStream]([ExtResource("15_ce8rq"), ExtResource("16_mpyyl")])
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
 
@@ -62,7 +72,11 @@ speed = 80.0
 detection_radius = 450.0
 protractor_slice_range = 75.0
 buff_chance = 0.35
+protractor_slice_sounds = Array[AudioStream]([ExtResource("18_bxgge")])
+protractor_hit_sounds = Array[AudioStream]([ExtResource("19_rmf6y"), ExtResource("20_mebjf"), ExtResource("21_sxacm")])
+pencil_hit_sounds = Array[AudioStream]([ExtResource("22_rmf6y")])
 buff_sounds = Array[AudioStream]([ExtResource("4_gbhdq"), ExtResource("5_y646j"), ExtResource("6_lnbra")])
+death_sounds = Array[AudioStream]([ExtResource("25_x0e4d")])
 
 [node name="ParallaxBackground" type="ParallaxBackground" parent="."]
 

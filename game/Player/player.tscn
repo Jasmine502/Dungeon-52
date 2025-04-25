@@ -365,7 +365,7 @@ script = ExtResource("1_od3ui")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 texture_repeat = 2
 sprite_frames = SubResource("SpriteFrames_efx54")
-animation = &"attack"
+animation = &"fall"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(-53, 69)

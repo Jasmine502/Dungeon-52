@@ -1,16 +1,11 @@
-[gd_scene load_steps=123 format=3 uid="uid://fvb45fjuy6tv"]
+[gd_scene load_steps=117 format=3 uid="uid://fvb45fjuy6tv"]
 
 [ext_resource type="Texture2D" uid="uid://cvm61es64wlqj" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0001.png" id="1_smmym"]
 [ext_resource type="Script" uid="uid://ba3fj6s51tvqt" path="res://Enemies/Bosses/Calculator/calculator.gd" id="1_ujji5"]
-[ext_resource type="AudioStream" uid="uid://cgxg3d06nx53h" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash.wav" id="2_b4qri"]
 [ext_resource type="Texture2D" uid="uid://cpc20gjtb2cml" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0002.png" id="2_dwmvj"]
-[ext_resource type="AudioStream" uid="uid://dcrpo4p6nhq0w" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash Hit Flesh 1.wav" id="3_0hkmd"]
 [ext_resource type="Texture2D" uid="uid://b2ygh0wq6nnb0" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0003.png" id="3_xaf4b"]
-[ext_resource type="AudioStream" uid="uid://d4ix18who51fj" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash Hit Flesh 2.wav" id="4_02u2h"]
 [ext_resource type="Texture2D" uid="uid://bief6nfxb1isg" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0004.png" id="4_op2q5"]
 [ext_resource type="Texture2D" uid="uid://d2epmgxg8a1c6" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0005.png" id="5_3ohwn"]
-[ext_resource type="AudioStream" uid="uid://3l4od8hstjrd" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash Hit Flesh 3.wav" id="5_j6xr2"]
-[ext_resource type="AudioStream" uid="uid://4ep8s7yuppgv" path="res://Enemies/Bosses/Calculator/Sounds/Pencil Jab Hit Flesh.wav" id="6_h6jco"]
 [ext_resource type="Texture2D" uid="uid://vdv5igoxxobj" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0006.png" id="6_tn2wr"]
 [ext_resource type="Texture2D" uid="uid://bhsx12v5b5446" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0007.png" id="7_8srpv"]
 [ext_resource type="AudioStream" uid="uid://bd63b2jw0k2sr" path="res://Enemies/Bosses/Calculator/Sounds/Multiple Button Presses (Fast).wav" id="7_el515"]
@@ -22,7 +17,6 @@
 [ext_resource type="AudioStream" uid="uid://clc104afdpwh5" path="res://Enemies/Bosses/Calculator/Sounds/Calculator Hurt 1.wav" id="10_tvpps"]
 [ext_resource type="Texture2D" uid="uid://cwqjnc3jxmdcv" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0011.png" id="11_73o81"]
 [ext_resource type="AudioStream" uid="uid://dqhbdsp3eogt3" path="res://Enemies/Bosses/Calculator/Sounds/Calculator Hurt 2.wav" id="11_eyujj"]
-[ext_resource type="AudioStream" uid="uid://b2dgm78wuikpu" path="res://Enemies/Bosses/Calculator/Sounds/Calculator Death.wav" id="12_ac2i6"]
 [ext_resource type="Texture2D" uid="uid://cnpuru5yt2ksy" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0012.png" id="12_rwglp"]
 [ext_resource type="AudioStream" uid="uid://c7jdpmovcxb68" path="res://Enemies/Bosses/Calculator/Sounds/Single Button Press.wav" id="13_h5gd4"]
 [ext_resource type="Texture2D" uid="uid://b4rrjr60ppw2u" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0013.png" id="13_ntgqu"]
@@ -491,12 +485,8 @@ radius = 318.006
 collision_layer = 4
 script = ExtResource("1_ujji5")
 pencil_jab_range = 400.0
-protractor_slice_sounds = Array[AudioStream]([ExtResource("2_b4qri")])
-protractor_hit_sounds = Array[AudioStream]([ExtResource("3_0hkmd"), ExtResource("4_02u2h"), ExtResource("5_j6xr2")])
-pencil_hit_sounds = Array[AudioStream]([ExtResource("6_h6jco")])
 buff_sounds = Array[AudioStream]([ExtResource("7_el515"), ExtResource("8_xbqsi"), ExtResource("9_du31m"), ExtResource("13_h5gd4")])
 damage_sounds = Array[AudioStream]([ExtResource("10_tvpps"), ExtResource("11_eyujj")])
-death_sound = Array[AudioStream]([ExtResource("12_ac2i6")])
 error_sounds = Array[AudioStream]([ExtResource("13_h5gd4")])
 min_pitch = 0.9
 max_pitch = 1.2
@@ -547,11 +537,9 @@ collision_mask = 2
 position = Vector2(-125, 1)
 shape = SubResource("CircleShape2D_f27tb")
 
-[node name="JabAttackSFXPlayer" type="AudioStreamPlayer2D" parent="."]
+[node name="AttackSFXPlayer" type="AudioStreamPlayer2D" parent="."]
 
 [node name="DamageSFXPlayer" type="AudioStreamPlayer2D" parent="."]
-
-[node name="SliceAttackSFXPlayer" type="AudioStreamPlayer2D" parent="."]
 
 [node name="HitPlayerSFXPlayer" type="AudioStreamPlayer2D" parent="."]
 

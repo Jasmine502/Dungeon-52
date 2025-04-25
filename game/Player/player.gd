@@ -3,7 +3,7 @@ extends CharacterBody2D
 
 # Movement Parameters
 @export var speed: float = 150.0
-@export var jump_velocity: float = -300.0
+@export var jump_velocity: float = -400.0
 @export var roll_speed: float = 350.0
 
 # Attack Parameters
@@ -24,7 +24,7 @@ var current_stamina: float # Float for smooth regen
 @export var jump_stamina_cost: int = 10
 
 # --- Knockback ---
-@export var knockback_strength: float = 200.0 # NEW: Control knockback force
+@export var knockback_strength: float = 200.0 # Control knockback force
 
 # --- Audio Resources ---
 @export_group("Audio Streams")
@@ -79,45 +79,56 @@ var enemies_hit_this_swing: Array = []
 func _ready() -> void:
 	current_hp = max_hp
 	current_stamina = float(max_stamina)
-	add_to_group("player")
+	add_to_group("player") # Add player to group for easy finding
 
-	if is_instance_valid(animated_sprite):
-		if not animated_sprite.animation_finished.is_connected(Callable(self, "_on_animation_finished")):
-			animated_sprite.animation_finished.connect(Callable(self, "_on_animation_finished"))
-		if not animated_sprite.frame_changed.is_connected(Callable(self, "_on_animation_frame_changed")):
-			animated_sprite.frame_changed.connect(Callable(self, "_on_animation_frame_changed"))
-	else:
+	# Validate crucial nodes
+	if not is_instance_valid(animated_sprite):
 		printerr("ERROR (Player): AnimatedSprite2D node not found!")
+		set_process(false) # Disable script if core components missing
+		set_physics_process(false)
+		return
+	if not is_instance_valid(attack_hitbox):
+		printerr("ERROR (Player): AttackHitbox Area2D not found!")
+		# Can continue, but attack won't work
+	if not is_instance_valid(attack_hitbox_shape):
+		printerr("ERROR (Player): AttackHitbox Shape not found!")
+		# Can continue, but attack won't work
+	else:
+		attack_hitbox_shape.disabled = true # Ensure hitbox starts disabled
+
+	if not is_instance_valid(collision_shape_main):
+		printerr("ERROR (Player): Main CollisionShape2D not found!")
+		# Cannot function without collision
+
+	# Connect signals safely
+	if not animated_sprite.animation_finished.is_connected(Callable(self, "_on_animation_finished")):
+		animated_sprite.animation_finished.connect(Callable(self, "_on_animation_finished"))
+	if not animated_sprite.frame_changed.is_connected(Callable(self, "_on_animation_frame_changed")):
+		animated_sprite.frame_changed.connect(Callable(self, "_on_animation_frame_changed"))
 
 	if is_instance_valid(attack_hitbox):
 		if not attack_hitbox.area_entered.is_connected(Callable(self, "_on_attack_hitbox_area_entered")):
 			attack_hitbox.area_entered.connect(Callable(self, "_on_attack_hitbox_area_entered"))
-		if is_instance_valid(attack_hitbox_shape):
-			attack_hitbox_shape.disabled = true
-		else:
-			printerr("ERROR (Player): AttackHitbox Shape not found!")
-	else:
-		printerr("ERROR (Player): AttackHitbox Area2D not found!")
 
+	# Initial UI update
 	emit_signal("hp_changed", current_hp, max_hp)
 	emit_signal("stamina_changed", current_stamina, max_stamina)
 
-	if not is_instance_valid(attack_sfx_player): printerr("ERROR (Player): AttackSFXPlayer node not found!")
-	if not is_instance_valid(grunt_sfx_player): printerr("ERROR (Player): GruntSFXPlayer node not found!")
-	if not is_instance_valid(movement_sfx_player): printerr("ERROR (Player): MovementSFXPlayer node not found!")
-	if not is_instance_valid(damage_sfx_player): printerr("ERROR (Player): DamageSFXPlayer node not found!")
-	if not is_instance_valid(death_sfx_player): printerr("ERROR (Player): DeathSFXPlayer node not found!")
+	# Audio node validation (optional, but good practice)
+	if not is_instance_valid(attack_sfx_player): printerr("WARNING (Player): AttackSFXPlayer node not found!")
+	if not is_instance_valid(grunt_sfx_player): printerr("WARNING (Player): GruntSFXPlayer node not found!")
+	if not is_instance_valid(movement_sfx_player): printerr("WARNING (Player): MovementSFXPlayer node not found!")
+	if not is_instance_valid(damage_sfx_player): printerr("WARNING (Player): DamageSFXPlayer node not found!")
+	if not is_instance_valid(death_sfx_player): printerr("WARNING (Player): DeathSFXPlayer node not found!")
 
 # --- Audio Helper ---
 func play_sound(player_node: AudioStreamPlayer2D, sound_variations: Array, p_min_pitch: float = min_pitch, p_max_pitch: float = max_pitch) -> void:
-	if not is_instance_valid(player_node):
-		return
-	if sound_variations.is_empty():
-		return
+	if not is_instance_valid(player_node): return
+	if sound_variations.is_empty(): return
 
 	var sound_stream = sound_variations.pick_random()
 	if not sound_stream is AudioStream:
-		printerr("Warning (Player): Invalid item in sound variations array.")
+		printerr("Warning (Player): Invalid item in sound variations array for player: ", player_node.name)
 		return
 
 	player_node.stream = sound_stream
@@ -126,108 +137,108 @@ func play_sound(player_node: AudioStreamPlayer2D, sound_variations: Array, p_min
 
 # --- Non-Physics Updates ---
 func _process(delta: float) -> void:
-	if is_dead: return
+	if is_dead: return # Stop processing if dead
 
-	# Regenerate stamina if not performing a blocking action and delay has passed
-	if not is_rolling and not is_attacking: # Could add is_jumping check if needed, but regen delay handles it
+	# Regenerate stamina if conditions met
+	if not is_rolling and not is_attacking:
 		if stamina_regen_timer > 0:
 			stamina_regen_timer -= delta
 		elif current_stamina < max_stamina:
 			var previous_stamina = current_stamina
 			current_stamina = min(current_stamina + stamina_regen_rate * delta, float(max_stamina))
-			if current_stamina != previous_stamina:
+			if current_stamina != previous_stamina: # Only emit if value changed
 				emit_signal("stamina_changed", current_stamina, max_stamina)
 
 # --- Physics Updates ---
 func _physics_process(delta: float) -> void:
-	if is_dead:
-		# No need to set velocity to zero here if physics process is false (set in _die)
-		return
+	if is_dead: return # Physics stops upon death (_die handles this)
 
-	var current_velocity = velocity # Store velocity before modifications
+	var current_velocity = velocity # Start with current velocity
 
-	# Apply gravity if not on the floor
+	# Apply gravity
 	if not is_on_floor():
 		current_velocity.y += gravity * delta
 
-	# Handle states that prevent normal movement (hit, roll, attack)
-	if handle_blocking_states(delta):
-		velocity = current_velocity # Update velocity with changes from blocking state handler
+	# Handle states that override normal input/movement
+	if handle_blocking_states(delta, current_velocity):
+		# If a blocking state handled movement, apply its modified velocity
+		velocity = current_velocity
 		move_and_slide()
-		return
+		update_animation() # Update animation based on current state
+		return # Skip normal input handling
 
-	# Get input and handle movement/actions
+	# Handle regular input and movement
 	var input_direction = Input.get_axis("move_left", "move_right")
-	# Modify current_velocity based on input
 	current_velocity = handle_input_and_movement(input_direction, current_velocity)
 
-	# Apply final movement
-	velocity = current_velocity # Update the character's velocity
+	# Apply final velocity and move
+	velocity = current_velocity
 	move_and_slide()
 
-	# Update animation based on final state and velocity (after move_and_slide)
-	update_animation(input_direction)
+	# Update animation based on final velocity and state (after movement)
+	update_animation()
 
 
 # --- State/Movement Helpers ---
-# MODIFIED: This function now returns the modified velocity
-func handle_blocking_states(delta: float) -> bool:
+# MODIFIED: Takes velocity by value, returns true if blocked, modifies velocity directly
+func handle_blocking_states(delta: float, current_velocity: Vector2) -> bool:
 	var is_blocked = false
-	var current_velocity = velocity # Work with current velocity
 
 	if is_hit:
-		# Allow some movement drift while hit, gradually slowing down
+		# Gradual slowdown during hit state
 		current_velocity.x = move_toward(current_velocity.x, 0, speed * 1.5 * delta)
-		# Don't modify current_velocity.y here, let gravity handle it
+		# Let gravity handle y velocity
 		is_blocked = true
 	elif is_rolling:
-		# Roll velocity is set in initiate_roll, maintain it (gravity applies)
-		# Friction could be added here if needed:
-		# current_velocity.x = move_toward(current_velocity.x, 0, roll_friction * delta)
+		# Roll velocity is set in initiate_roll and maintained by physics
+		# (Gravity will affect it naturally if in the air)
 		is_blocked = true
 	elif is_attacking:
 		# Slow down horizontally during attack
 		current_velocity.x = move_toward(current_velocity.x, 0, speed * 0.8 * delta)
 		is_blocked = true
 
+	# If blocked, update the character's main velocity directly
 	if is_blocked:
-		velocity = current_velocity # Update main velocity if blocked
+		velocity = current_velocity # Update main velocity property
 		return true
 	else:
-		return false # No blocking state active
+		return false
 
-
-# MODIFIED: This function now takes velocity as input and returns the modified velocity
+# MODIFIED: Takes current velocity, returns the potentially modified velocity
 func handle_input_and_movement(direction: float, current_velocity: Vector2) -> Vector2:
-	var acted = false # Flag to check if an action was taken
+	var modified_velocity = current_velocity
+	var acted = false # Flag to check if an action was taken that affects velocity
 
 	# --- Handle Actions (Check conditions before initiating) ---
 	# Roll
-	if Input.is_action_just_pressed("roll") and is_on_floor() and current_stamina >= roll_stamina_cost and not is_attacking and not is_hit:
-		current_velocity = initiate_roll(direction, current_velocity) # Roll modifies velocity directly
+	if Input.is_action_just_pressed("roll") and is_on_floor() and current_stamina >= roll_stamina_cost:
+		modified_velocity = initiate_roll(direction, modified_velocity)
 		acted = true
 	# Attack
-	elif Input.is_action_just_pressed("attack") and is_on_floor() and current_stamina >= attack_stamina_cost and not is_rolling and not is_hit:
-		initiate_attack() # Attack stops horizontal movement implicitly via handle_blocking_states
-		acted = true
+	elif Input.is_action_just_pressed("attack") and is_on_floor() and current_stamina >= attack_stamina_cost:
+		initiate_attack()
+		acted = true # Attack state will handle velocity in handle_blocking_states
 	# Jump
-	elif Input.is_action_just_pressed("jump") and is_on_floor() and current_stamina >= jump_stamina_cost and not is_attacking and not is_rolling and not is_hit:
-		current_velocity = initiate_jump(current_velocity) # Jump modifies velocity directly
-		acted = true # Technically jump happens, but allow horizontal movement setting below
+	elif Input.is_action_just_pressed("jump") and is_on_floor() and current_stamina >= jump_stamina_cost:
+		modified_velocity = initiate_jump(modified_velocity)
+		acted = true # Jump modifies velocity directly
 
-	# --- Handle Horizontal Movement (Only if NOT rolling or attacking) ---
+	# --- Handle Horizontal Movement (Only if NOT performing an overriding action) ---
+	# Apply horizontal movement based on input if not rolling or attacking
 	if not is_rolling and not is_attacking:
 		if direction != 0:
-			current_velocity.x = direction * speed
+			modified_velocity.x = direction * speed
 		else:
 			# Apply friction/deceleration if no direction input
-			current_velocity.x = move_toward(current_velocity.x, 0, speed) # Use speed as friction factor
+			modified_velocity.x = move_toward(modified_velocity.x, 0, speed) # Use speed as friction factor
 
-	return current_velocity
+	return modified_velocity
 
-
-func update_animation(input_direction: float) -> void:
-	# Don't change animation if in a fixed-animation state
+# --- Animation Control ---
+func update_animation() -> void:
+	# Don't change animation if in a fixed-animation state or if sprite is invalid
+	if not is_instance_valid(animated_sprite): return
 	if is_dead or is_hit or is_rolling or is_attacking: return
 
 	var anim_to_play = "idle" # Default animation
@@ -236,113 +247,137 @@ func update_animation(input_direction: float) -> void:
 		# Reset fall frame hold if landed
 		if is_holding_fall_frame:
 			is_holding_fall_frame = false
-			if not animated_sprite.is_playing(): animated_sprite.play() # Resume if stopped
+			# If sprite was stopped, ensure it plays the landing/idle animation
+			if not animated_sprite.is_playing():
+				anim_to_play = "idle" # Or a specific landing animation if you have one
+				play_animation(anim_to_play) # Play immediately
+				# Don't return yet, allow horizontal check below
 
-		# Determine animation based on horizontal velocity
+		# Determine floor animation based on horizontal velocity
 		if abs(velocity.x) > 5.0: anim_to_play = "run"
 		else: anim_to_play = "idle"
 
 	else: # In the air
-		# Check if we should hold the last frame of 'fall'
-		if is_holding_fall_frame:
-			# Ensure we are on the fall animation and stopped at the last frame
-			if animated_sprite.animation != "fall" or animated_sprite.is_playing():
-				play_animation("fall") # This call handles stopping at the last frame now
-			return # Don't proceed further if holding fall frame
+		# Fall animation logic
+		if velocity.y >= 0: # Moving downwards or stationary vertically
+			if animated_sprite.animation != "fall":
+				play_animation("fall") # Start fall animation
+			# Check if we should hold the last frame
+			var last_frame_index = animated_sprite.sprite_frames.get_frame_count("fall") - 1
+			if animated_sprite.frame == last_frame_index and not is_holding_fall_frame:
+				animated_sprite.stop() # Stop at the last frame
+				is_holding_fall_frame = true
+			# Don't change anim_to_play if falling/holding fall
+			return # Exit early, fall logic handles itself
+		# Jump animation logic
+		elif velocity.y < 0: # Moving upwards
+			anim_to_play = "jump"
+			# Release hold if jumping up again
+			if is_holding_fall_frame: is_holding_fall_frame = false
 
-		# Determine animation based on vertical velocity
-		elif velocity.y < 0: anim_to_play = "jump"
-		else: anim_to_play = "fall"
 
-	# Play the determined animation
-	play_animation(anim_to_play)
+	# Play the determined animation if it's different from the current one
+	if animated_sprite.animation != anim_to_play:
+		play_animation(anim_to_play)
 
-	# Flip sprite based on input direction (or keep last direction if no input)
-	if input_direction != 0:
-		animated_sprite.flip_h = (input_direction < 0)
+	# Flip sprite based on horizontal velocity (if moving), otherwise keep facing direction
+	if abs(velocity.x) > 1.0: # Use a small threshold
+		animated_sprite.flip_h = (velocity.x < 0)
 
 
 # --- Action Initiation ---
-# MODIFIED: Roll now takes velocity and returns modified velocity
+# MODIFIED: Takes velocity, returns modified velocity
 func initiate_roll(input_direction: float, current_velocity: Vector2) -> Vector2:
-	if is_dead: return current_velocity
+	if is_dead: return current_velocity # Cannot roll if dead
+
+	# Consume stamina and reset delay
 	current_stamina -= roll_stamina_cost
 	emit_signal("stamina_changed", current_stamina, max_stamina)
-	stamina_regen_timer = stamina_regen_delay # Reset regen delay
+	stamina_regen_timer = stamina_regen_delay
 
+	# Set state flags
 	is_rolling = true; is_attacking = false; is_hit = false; is_holding_fall_frame = false
-	# Determine roll direction based on input or facing direction if neutral
+
+	# Determine roll direction
 	var roll_dir = input_direction if input_direction != 0 else (-1.0 if animated_sprite.flip_h else 1.0)
 	animated_sprite.flip_h = (roll_dir < 0) # Flip sprite to match roll direction
-	current_velocity.x = roll_dir * roll_speed # Set roll velocity
-	current_velocity.y = 0 # Ensure no vertical movement during roll start
+
+	# Set velocity for the roll
+	var modified_velocity = current_velocity
+	modified_velocity.x = roll_dir * roll_speed
+	modified_velocity.y = 0 # Ensure no vertical movement is initiated by the roll itself
+
 	play_animation("roll")
 	# play_sound(movement_sfx_player, roll_sounds) # Uncomment if you have roll sounds
-	return current_velocity
+
+	return modified_velocity # Return the velocity set by the roll
+
 
 func initiate_attack() -> void:
-	if is_dead: return
+	if is_dead: return # Cannot attack if dead
+
+	# Consume stamina and reset delay
 	current_stamina -= attack_stamina_cost
 	emit_signal("stamina_changed", current_stamina, max_stamina)
-	stamina_regen_timer = stamina_regen_delay # Reset regen delay
+	stamina_regen_timer = stamina_regen_delay
 
+	# Set state flags
 	is_attacking = true; is_rolling = false; is_hit = false; is_holding_fall_frame = false
-	enemies_hit_this_swing.clear() # Clear list of enemies hit in previous swing
+	enemies_hit_this_swing.clear() # Reset hit list for this attack
+
+	# Play attack animation and grunt sound
 	play_animation("attack")
-	# Play Attack GRUNT sound immediately
 	play_sound(grunt_sfx_player, attack_grunts)
 	# Sword Whoosh sound is played via _on_animation_frame_changed
 
-# MODIFIED: Jump now takes velocity and returns modified velocity
-func initiate_jump(current_velocity: Vector2) -> Vector2:
-	if is_dead: return current_velocity
 
+# MODIFIED: Takes velocity, returns modified velocity
+func initiate_jump(current_velocity: Vector2) -> Vector2:
+	if is_dead: return current_velocity # Cannot jump if dead
+
+	# Consume stamina and reset delay
 	current_stamina -= jump_stamina_cost
 	emit_signal("stamina_changed", current_stamina, max_stamina)
-	stamina_regen_timer = stamina_regen_delay # Reset regen delay
+	stamina_regen_timer = stamina_regen_delay
 
-	current_velocity.y = jump_velocity # Apply jump impulse
-	is_holding_fall_frame = false # Ensure not holding fall frame
+	# Apply jump velocity
+	var modified_velocity = current_velocity
+	modified_velocity.y = jump_velocity
+
+	# Reset fall state flags
+	is_holding_fall_frame = false
+	if is_instance_valid(animated_sprite) and not animated_sprite.is_playing():
+		animated_sprite.play() # Ensure sprite plays if it was stopped (e.g., held fall)
+
+	play_animation("jump") # Play jump animation immediately
 	play_sound(movement_sfx_player, jump_grunt_sounds)
-	return current_velocity
+
+	return modified_velocity # Return the velocity affected by the jump
 
 
-# --- Animation Handling ---
+# --- Animation Playback Helper ---
 func play_animation(anim_name: String) -> void:
+	if not is_instance_valid(animated_sprite): return
 	# Do not change animation if dead, unless playing the 'dead' animation itself
 	if is_dead and anim_name != "dead": return
-	if not is_instance_valid(animated_sprite): return
 
-	# Check if the animation exists
 	if animated_sprite.sprite_frames.has_animation(anim_name):
-		# Special handling for fall animation to hold last frame
-		if anim_name == "fall":
-			if animated_sprite.animation != "fall":
-				animated_sprite.play("fall")
-			# Check if we need to manually stop at the last frame
-			var last_frame_index = animated_sprite.sprite_frames.get_frame_count("fall") - 1
-			if animated_sprite.frame == last_frame_index and not is_holding_fall_frame:
-				animated_sprite.stop()
-				is_holding_fall_frame = true
-			elif is_holding_fall_frame and animated_sprite.is_playing():
-				# If playing again after being held, just let it play
-				is_holding_fall_frame = false
-
-		# Play other animations only if different
-		elif animated_sprite.animation != anim_name:
-			# If currently holding fall frame, release it
-			if is_holding_fall_frame:
-				is_holding_fall_frame = false
-				# Ensure sprite is playing if it was stopped
-				if not animated_sprite.is_playing(): animated_sprite.play()
-
+		# Only play if the animation is different, or if it needs restarting (like attack)
+		# Exception: Allow re-playing 'fall' to handle the hold logic correctly
+		if animated_sprite.animation != anim_name or anim_name == "fall":
 			animated_sprite.play(anim_name)
+			# If starting an animation other than fall, release the hold flag
+			if anim_name != "fall" and is_holding_fall_frame:
+				is_holding_fall_frame = false
 
+	else:
+		printerr("ERROR (Player): Animation '", anim_name, "' not found!")
 
+# --- Animation Signal Callbacks ---
 func _on_animation_frame_changed():
-	if is_dead: return
+	if is_dead or not is_instance_valid(animated_sprite): return
 
-	# Handle attack hitbox and sound timing precisely based on current frame
+	# Handle attack hitbox and sound timing based on current frame
 	if is_attacking and animated_sprite.animation == "attack":
 		var current_frame = animated_sprite.frame
 
@@ -356,147 +391,150 @@ func _on_animation_frame_changed():
 			if current_frame == attack_hit_frame:
 				if attack_hitbox_shape.disabled:
 					attack_hitbox_shape.disabled = false
-			# Disable hitbox AFTER the hit frame (important for multi-hit prevention)
+			# Disable hitbox AFTER the hit frame
+			# Important: Could also disable in _on_animation_finished for safety
 			elif current_frame > attack_hit_frame:
 				if not attack_hitbox_shape.disabled:
 					attack_hitbox_shape.disabled = true
 
 
 func _on_animation_finished() -> void:
-	if is_dead: return
+	if is_dead or not is_instance_valid(animated_sprite): return
 
 	var finished_anim = animated_sprite.animation
 
-	# Ensure attack hitbox is disabled when related animations finish
-	if finished_anim == "attack": # Only need attack here, roll/hit don't use attack hitbox
+	# Ensure attack hitbox is reliably disabled when attack animation finishes
+	if finished_anim == "attack":
 		if is_instance_valid(attack_hitbox_shape) and not attack_hitbox_shape.disabled:
+			# Use call_deferred for safety if physics issues arise, but direct should be fine here
 			attack_hitbox_shape.disabled = true
+		_end_attack() # Transition out of attack state
 
 	# Handle state transitions based on which animation finished
 	match finished_anim:
 		"roll": _end_roll()
-		"attack": _end_attack()
 		"hit": _end_hit()
-		"jump": pass # Jump animation finishing doesn't change physics state directly
-		"fall":
-			# If the fall animation finishes, ensure holding frame logic is consistent
-			if is_on_floor():
-				is_holding_fall_frame = false
-			elif not is_holding_fall_frame: # Still in air, hold frame
-				play_animation("fall") # This will trigger the hold logic in play_animation
-		"dead":
-			# Animation finished, character remains in dead state. No action needed here.
+		"jump":
+			# If jump animation finishes but still moving up, do nothing special.
+			# If starting to fall, update_animation logic should handle switching to "fall".
 			pass
-
+		"fall":
+			# If fall animation finishes (unlikely unless 1 frame?), ensure hold logic is reset
+			# If on floor, update_animation handles idle/run. If still airborne, should ideally loop or hold.
+			# The hold logic in update_animation should prevent this callback causing issues.
+			if not is_on_floor() and not is_holding_fall_frame:
+				# If somehow it finished while airborne without holding, replay and hold
+				play_animation("fall")
+		"dead":
+			# Animation finished, character remains in dead state. Stop sprite updates.
+			animated_sprite.stop()
+			# set_process(false) # Optional: further disable processing
 
 # --- State Ending Functions ---
 func _end_roll() -> void:
-	# Only end roll state if currently rolling
-	if not is_rolling: return
-	is_rolling = false
+	if is_rolling: is_rolling = false
 
 func _end_attack() -> void:
-	# Only end attack state if currently attacking
-	if not is_attacking: return
-	is_attacking = false
-	# Ensure hitbox is disabled as a final check
-	if is_instance_valid(attack_hitbox_shape): attack_hitbox_shape.set_deferred("disabled", true)
+	if is_attacking: is_attacking = false
+	# Final check to ensure hitbox is off
+	if is_instance_valid(attack_hitbox_shape) and not attack_hitbox_shape.disabled:
+		attack_hitbox_shape.set_deferred("disabled", true)
 
 func _end_hit() -> void:
-	# Only end hit state if currently hit
-	if not is_hit: return
-	is_hit = false
+	if is_hit: is_hit = false
 
 
 # --- Damage & Death ---
-# MODIFIED: take_damage now accepts a direction
-func take_damage(amount: int, knockback_direction: Vector2 = Vector2.ZERO) -> void:
+# MODIFIED: take_damage now accepts knockback source position
+func take_damage(amount: int, damage_source_position: Vector2 = global_position) -> void:
 	# Check for invulnerability states
 	if is_invulnerable(): return
 
-	current_hp -= amount
+	current_hp = max(0, current_hp - amount) # Prevent negative HP
 	emit_signal("hp_changed", current_hp, max_hp)
-	print("Player took damage:", amount, "| HP:", current_hp, "/", max_hp, "| Knockback From:", knockback_direction)
+	# print("Player took damage:", amount, "| HP:", current_hp, "/", max_hp, "| From:", damage_source_position) # Debug
 
 	play_sound(damage_sfx_player, damage_grunt_sounds)
 
-	# Enter hit state, cancelling other actions
-	is_hit = true; is_attacking = false; is_rolling = false; is_holding_fall_frame = false
-	stamina_regen_timer = stamina_regen_delay # Reset regen delay on taking hit
+	# Reset attack/roll states and stamina delay
+	is_attacking = false; is_rolling = false; is_holding_fall_frame = false
+	stamina_regen_timer = stamina_regen_delay
+	if is_instance_valid(attack_hitbox_shape):
+		attack_hitbox_shape.set_deferred("disabled", true) # Ensure hitbox off
 
 	if current_hp <= 0:
-		current_hp = 0
 		_die() # Trigger death sequence
 	else:
-		# Apply hit effects
+		# Enter hit state
+		is_hit = true
 		play_animation("hit")
-		# Apply knockback based on the direction and strength
-		# Ensure direction is normalized
-		var effective_knockback_dir = knockback_direction.normalized()
-		if effective_knockback_dir == Vector2.ZERO: # Avoid zero vector if source was same position
-			effective_knockback_dir = Vector2.RIGHT.rotated(randf_range(0, TAU))
 
-		# Apply force. You might want separate horizontal/vertical strengths
-		# Example: Stronger horizontal push, slight upward push
-		velocity.x = effective_knockback_dir.x * knockback_strength
-		velocity.y = effective_knockback_dir.y * knockback_strength * 0.5 - 100 # Apply Y knockback + small upward boost
+		# Apply knockback based on the source position
+		var knockback_direction = (global_position - damage_source_position).normalized()
+		# Handle case where source is exactly the same position
+		if knockback_direction == Vector2.ZERO:
+			knockback_direction = Vector2(1.0 if randf() > 0.5 else -1.0, -0.5).normalized() # Random direction with upward bias
 
+		# Apply knockback force (can be adjusted)
+		velocity.x = knockback_direction.x * knockback_strength
+		velocity.y = knockback_direction.y * knockback_strength * 0.6 - 120 # Add slight upward boost
 
 # Helper function to check invulnerability conditions
 func is_invulnerable() -> bool:
 	# Player is invulnerable if rolling, already hit, or dead
 	return is_rolling or is_hit or is_dead
 
-
 func _die() -> void:
-	# Prevent dying multiple times
-	if is_dead: return
-	print("Player Died!")
+	if is_dead: return # Prevent multiple deaths
 	is_dead = true
-	# Clear any active states
+	print("Player Died!")
+
+	# Clear all active states
 	is_hit = false; is_rolling = false; is_attacking = false; is_holding_fall_frame = false
-	velocity = Vector2.ZERO # Stop all movement
+	velocity = Vector2.ZERO # Stop all movement immediately
 
-	play_animation("dead") # Play death animation
-	play_sound(death_sfx_player, death_sounds) # Play death sound
-	emit_signal("died") # Signal that the player died
+	play_animation("dead")
+	play_sound(death_sfx_player, death_sounds)
+	emit_signal("died") # Signal game systems
 
-	# Disable collisions and physics processing
+	# Disable collisions and physics processing safely
 	if is_instance_valid(collision_shape_main):
-		# Use call_deferred to avoid physics errors during the frame collision occurs
 		collision_shape_main.set_deferred("disabled", true)
-	else: printerr("ERROR (Player): Main CollisionShape2D not found for disabling!")
-	# Stop physics updates for the dead player
-	set_physics_process(false)
+	if is_instance_valid(attack_hitbox_shape):
+		attack_hitbox_shape.set_deferred("disabled", true)
+
+	set_physics_process(false) # Stop physics updates for this node
 
 
 # --- Hitbox Interaction ---
 func _on_attack_hitbox_area_entered(area: Area2D):
-	# Check basic conditions: is attacking, hitbox enabled, not dead
-	if is_dead or not is_attacking or not is_instance_valid(attack_hitbox_shape) or attack_hitbox_shape.disabled: return
+	# Ensure hitbox is active, player is attacking, and not dead
+	if is_dead or not is_attacking or not is_instance_valid(attack_hitbox_shape) or attack_hitbox_shape.disabled:
+		return
 
-	# Check if the entered area is an enemy hurtbox
+	# Check if the entered area belongs to an enemy
 	if area.is_in_group("enemy_hurtbox"):
-		# Try to get the owner (the enemy script node)
+		# Get the owner (should be the main enemy script)
 		var enemy_node = area.get_owner()
-		# Fallback if owner isn't set correctly (less ideal)
-		if not is_instance_valid(enemy_node): enemy_node = area.get_parent()
 
-		# Ensure parent is valid, is an enemy, can take damage, and hasn't been hit this swing
-		if is_instance_valid(enemy_node) and \
-		   enemy_node.is_in_group("enemies") and \
-		   enemy_node.has_method("take_damage") and \
-		   not enemies_hit_this_swing.has(area): # Check against the hurtbox area itself
+		# Validate the enemy node
+		if not is_instance_valid(enemy_node):
+			printerr("WARNING (Player): Hit enemy hurtbox without valid owner:", area.name)
+			return # Cannot apply damage without a valid owner
 
-			print("Player attacking:", enemy_node.name)
-			# Calculate knockback direction away from the player
-			# Pass the PLAYER'S global position as the source for the enemy's knockback calculation
+		# Ensure enemy can take damage and hasn't been hit by this specific swing yet
+		if enemy_node.has_method("take_damage") and not enemies_hit_this_swing.has(area):
+			# print("Player attacking:", enemy_node.name) # Debug
+
+			# Call the enemy's take_damage method, passing damage and source position
+			# The enemy will calculate knockback direction from this source
 			enemy_node.call("take_damage", attack_damage, global_position)
-			# Add the specific hurtbox area to the list of hits for this swing
+
+			# Add the specific hurtbox area to the list to prevent multi-hits per swing
 			enemies_hit_this_swing.append(area)
 
 
-# --- Convenience getters ---
+# --- Convenience getters (Optional, but can be useful) ---
 func get_current_hp() -> int:
 	return current_hp
 
