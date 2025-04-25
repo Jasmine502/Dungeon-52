@@ -4,18 +4,18 @@ extends CharacterBody2D
 # Stats & Exported Variables
 @export var max_hp: int = 200
 @export var speed: float = 70.0
-@export var detection_radius: float = 400.0 # Currently unused, logic uses direct player ref
+@export var detection_radius: float = 10000.0 # Currently unused, logic uses direct player ref
 @export var pencil_jab_damage: int = 15
 @export var protractor_slice_damage: int = 25
 # Threshold for changing damage reaction (e.g., 0.3 = 30% HP)
-@export var low_health_threshold_percent: float = 0.3
+@export var low_health_threshold_percent: float = 0.25
 # Knockback strength when hitting player
 @export var knockback_strength_on_hit: float = 150.0
 # Knockback strength when taking damage in ERROR state
 @export var error_state_knockback_strength: float = 180.0
 
 # AI / Movement Parameters
-@export var pencil_jab_range: float = 220.0
+@export var pencil_jab_range: float = 180.0
 @export var protractor_slice_range: float = 30.0 # Renamed from max_x_range for clarity
 @export var protractor_slice_max_y_diff: float = 40.0 # Max Y difference to allow slice
 @export var protractor_slice_sound_frame: int = 5 # Frame index (0-based) for slice sound

@@ -247,6 +247,9 @@ animations = [{
 "frames": [{
 "duration": 1.0,
 "texture": ExtResource("51_iji0b")
+}, {
+"duration": 1.0,
+"texture": ExtResource("50_hu0mb")
 }],
 "loop": true,
 "name": &"move_loop",
@@ -476,7 +479,7 @@ radius = 335.0
 height = 670.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ujji5"]
-size = Vector2(179.642, 414.816)
+size = Vector2(129.564, 430.722)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_f27tb"]
 radius = 318.006
@@ -493,7 +496,7 @@ max_pitch = 1.2
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_y6go8")
-animation = &"idle"
+animation = &"move_loop"
 
 [node name="Hurtbox" type="Area2D" parent="."]
 collision_layer = 16
@@ -524,8 +527,8 @@ collision_layer = 32
 collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="HitboxPivot/PencilHitbox"]
-position = Vector2(-470.392, 108.906)
-rotation = 0.977704
+position = Vector2(-407.374, 118.151)
+rotation = 0.873677
 scale = Vector2(1, 1)
 shape = SubResource("RectangleShape2D_ujji5")
 

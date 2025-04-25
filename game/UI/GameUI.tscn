@@ -28,10 +28,9 @@ theme_override_styles/background = SubResource("StyleBoxFlat_hqqrp")
 show_percentage = false
 
 [node name="BossHPBar" type="ProgressBar" parent="."]
-visible = false
-offset_left = 521.0
+offset_left = 232.0
 offset_top = 583.0
-offset_right = 699.0
+offset_right = 988.0
 offset_bottom = 606.0
 theme_override_styles/background = SubResource("StyleBoxFlat_dgedd")
 show_percentage = false

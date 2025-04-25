@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3 uid="uid://bcfmhvodla6wg"]
+[gd_scene load_steps=30 format=3 uid="uid://bcfmhvodla6wg"]
 
 [ext_resource type="PackedScene" uid="uid://q5ggxlcdrid3" path="res://Player/player.tscn" id="1_gojnm"]
 [ext_resource type="PackedScene" uid="uid://fvb45fjuy6tv" path="res://Enemies/Bosses/Calculator/calculator.tscn" id="2_1c2mv"]
@@ -31,6 +31,9 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1c2mv"]
 size = Vector2(1771, 41)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rmf6y"]
+size = Vector2(11127, 98)
+
 [node name="TestLevel" type="Node2D"]
 
 [node name="Ground" type="StaticBody2D" parent="."]
@@ -47,6 +50,22 @@ offset_top = 39.0
 offset_right = 1157.0
 offset_bottom = 79.0
 color = Color(0.205117, 0.205117, 0.205117, 1)
+
+[node name="Ground2" type="StaticBody2D" parent="."]
+position = Vector2(0, 690)
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Ground2"]
+offset_left = -5502.0
+offset_top = 30.0
+offset_right = -3730.0
+offset_bottom = 70.0
+scale = Vector2(6.26664, 2.43894)
+color = Color(0.205117, 0.205117, 0.205117, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground2"]
+position = Vector2(63.5, 77)
+shape = SubResource("RectangleShape2D_rmf6y")
 
 [node name="GameUI" parent="." groups=["game_ui"] instance=ExtResource("3_f7g2b")]
 
@@ -87,4 +106,4 @@ motion_scale = Vector2(0.7, 0.8)
 texture_repeat = 2
 texture = ExtResource("7_y646j")
 region_enabled = true
-region_rect = Rect2(0, 0, 4000, 3000)
+region_rect = Rect2(0, 0, 8000, 6000)
