@@ -1,8 +1,12 @@
-[gd_scene load_steps=69 format=3 uid="uid://q5ggxlcdrid3"]
+[gd_scene load_steps=81 format=3 uid="uid://q5ggxlcdrid3"]
 
 [ext_resource type="Script" uid="uid://c6k2rxl7g70cq" path="res://Player/player.gd" id="1_od3ui"]
+[ext_resource type="AudioStream" uid="uid://b7fwm7xyygg8s" path="res://Player/Sounds/Death 1.wav" id="2_ac8n6"]
+[ext_resource type="AudioStream" uid="uid://cfhjernq8748g" path="res://Player/Sounds/ParryTry.wav" id="2_fatyj"]
 [ext_resource type="Texture2D" uid="uid://lt4yf2fw1yqg" path="res://Player/Animations/Attack0001.png" id="2_od3ui"]
 [ext_resource type="Texture2D" uid="uid://cjmdb078icsyw" path="res://Player/Animations/Attack0002.png" id="3_00tjw"]
+[ext_resource type="AudioStream" uid="uid://cavo32qh04amo" path="res://Player/Sounds/Death 2.wav" id="3_3bga3"]
+[ext_resource type="AudioStream" uid="uid://uprasnxvpkq7" path="res://Player/Sounds/ParrySucceed.wav" id="3_32uw3"]
 [ext_resource type="Texture2D" uid="uid://b6ukk8l8q31is" path="res://Player/Animations/Attack0003.png" id="4_x3vf3"]
 [ext_resource type="Texture2D" uid="uid://cavg04jjh0w7i" path="res://Player/Animations/Attack0004.png" id="5_apopc"]
 [ext_resource type="Texture2D" uid="uid://dhhrmsgxak2er" path="res://Player/Animations/Attack0005.png" id="6_5htga"]
@@ -33,13 +37,21 @@
 [ext_resource type="Texture2D" uid="uid://ccvylghq64hkq" path="res://Player/Animations/Idle0003.png" id="26_qas3k"]
 [ext_resource type="Texture2D" uid="uid://c4d513hej3chh" path="res://Player/Animations/Idle0004.png" id="27_ntwt4"]
 [ext_resource type="Texture2D" uid="uid://ctsvgylfswq8b" path="res://Player/Animations/Idle0005.png" id="28_kdg72"]
+[ext_resource type="Texture2D" uid="uid://cie2rlfusiqem" path="res://Player/Animations/Parry0001.png" id="34_o5r0w"]
 [ext_resource type="Texture2D" uid="uid://dhw8f23oco35p" path="res://Player/Animations/Roll0001.png" id="34_qpoj2"]
 [ext_resource type="Texture2D" uid="uid://cf2em63ldr1k2" path="res://Player/Animations/Roll0002.png" id="35_3e3ym"]
+[ext_resource type="Texture2D" uid="uid://br3k2ccchabm6" path="res://Player/Animations/Parry0002.png" id="35_qns6m"]
+[ext_resource type="Texture2D" uid="uid://c3tbvv7qskcik" path="res://Player/Animations/Parry0003.png" id="36_fatyj"]
 [ext_resource type="Texture2D" uid="uid://c8xbpmtx1ey05" path="res://Player/Animations/Roll0003.png" id="36_gxi5p"]
+[ext_resource type="Texture2D" uid="uid://b25jc6u7ymmnx" path="res://Player/Animations/Parry0004.png" id="37_32uw3"]
 [ext_resource type="Texture2D" uid="uid://ca4filop635a7" path="res://Player/Animations/Roll0004.png" id="37_yxu6j"]
+[ext_resource type="Texture2D" uid="uid://02e48scncrfe" path="res://Player/Animations/Parry0005.png" id="38_ac8n6"]
 [ext_resource type="Texture2D" uid="uid://cw84tn84dditk" path="res://Player/Animations/Roll0005.png" id="38_mdkl3"]
+[ext_resource type="Texture2D" uid="uid://uyipwt7t3y1c" path="res://Player/Animations/Parry0006.png" id="39_3bga3"]
 [ext_resource type="Texture2D" uid="uid://di3kn2weby3m5" path="res://Player/Animations/Roll0006.png" id="39_68syb"]
+[ext_resource type="Texture2D" uid="uid://d32qypi0ywgnp" path="res://Player/Animations/Parry0007.png" id="40_lhliw"]
 [ext_resource type="Texture2D" uid="uid://ch7ic3210onyk" path="res://Player/Animations/Roll0007.png" id="40_x0uyb"]
+[ext_resource type="Texture2D" uid="uid://djit7a5s3r8nk" path="res://Player/Animations/Parry0008.png" id="41_11wp0"]
 [ext_resource type="Texture2D" uid="uid://ckuil40hqnemn" path="res://Player/Animations/Roll0008.png" id="41_f8nak"]
 [ext_resource type="Texture2D" uid="uid://rdmk2n6ajlfu" path="res://Player/Animations/Roll0009.png" id="42_pqfba"]
 [ext_resource type="Texture2D" uid="uid://dvj0u1vsx6c63" path="res://Player/Animations/Run0001.png" id="43_lgaa7"]
@@ -196,6 +208,35 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": ExtResource("34_o5r0w")
+}, {
+"duration": 1.0,
+"texture": ExtResource("35_qns6m")
+}, {
+"duration": 1.0,
+"texture": ExtResource("36_fatyj")
+}, {
+"duration": 1.0,
+"texture": ExtResource("37_32uw3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("38_ac8n6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("39_3bga3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("40_lhliw")
+}, {
+"duration": 1.0,
+"texture": ExtResource("41_11wp0")
+}],
+"loop": false,
+"name": &"parry",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": ExtResource("34_qpoj2")
 }, {
 "duration": 1.0,
@@ -316,13 +357,18 @@ size = Vector2(523, 916.5)
 [node name="Player" type="CharacterBody2D"]
 collision_layer = 2
 script = ExtResource("1_od3ui")
+death_sounds = Array[AudioStream]([ExtResource("2_ac8n6"), ExtResource("3_3bga3")])
+parry_try_sounds = Array[AudioStream]([ExtResource("2_fatyj")])
+parry_success_sounds = Array[AudioStream]([ExtResource("3_32uw3")])
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 texture_repeat = 2
 position = Vector2(120, 340)
 scale = Vector2(2, 2)
 sprite_frames = SubResource("SpriteFrames_efx54")
-animation = &"dead"
+animation = &"parry"
+frame = 7
+frame_progress = 1.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(-13, 54)
@@ -348,3 +394,5 @@ disabled = true
 [node name="DamageSFXPlayer" type="AudioStreamPlayer2D" parent="."]
 
 [node name="DeathSFXPlayer" type="AudioStreamPlayer2D" parent="."]
+
+[node name="ParrySFXPlayer" type="AudioStreamPlayer2D" parent="."]

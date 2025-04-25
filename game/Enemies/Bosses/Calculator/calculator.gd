@@ -17,7 +17,7 @@ extends CharacterBody2D
 # AI / Movement Parameters
 @export var pencil_jab_range: float = 180.0
 @export var protractor_slice_range: float = 30.0 # Renamed from max_x_range for clarity
-@export var protractor_slice_max_y_diff: float = 40.0 # Max Y difference to allow slice
+@export var protractor_slice_max_y_diff: float = 50.0 # Max Y difference to allow slice
 @export var protractor_slice_sound_frame: int = 5 # Frame index (0-based) for slice sound
 @export var buff_chance: float = 0.2 # Chance to buff when low HP decision point occurs
 @export var follow_y_speed_multiplier: float = 0.8 # Speed multiplier for vertical movement
@@ -42,6 +42,7 @@ var base_protractor_damage: int
 @export var damage_sounds: Array[AudioStream] = [] # Played on ALL hits taken
 @export var death_sounds: Array[AudioStream] = [] # Played on death anim start
 @export var error_sounds: Array[AudioStream] = [] # Played only on LOW health hits (interrupt)
+# @export var parried_sounds: Array[AudioStream] = [] # TODO: Add optional specific sound for being parried
 
 @export_group("Audio Settings")
 @export var min_pitch: float = 0.95
@@ -81,7 +82,7 @@ signal died # Emitted when calculator HP reaches 0
 @onready var buff_sfx_player: AudioStreamPlayer2D = $BuffSFXPlayer
 @onready var damage_sfx_player: AudioStreamPlayer2D = $DamageSFXPlayer # For generic hurt sound
 @onready var death_sfx_player: AudioStreamPlayer2D = $DeathSFXPlayer
-@onready var state_sfx_player: AudioStreamPlayer2D = $StateSFXPlayer # For error state sound
+@onready var state_sfx_player: AudioStreamPlayer2D = $StateSFXPlayer # For error state sound (and parried)
 
 # --- Initialization ---
 func _ready() -> void:
@@ -190,8 +191,6 @@ func _physics_process(delta: float) -> void:
 	match current_state:
 		State.DEAD:
 			velocity = Vector2.ZERO # Ensure no movement when dead
-			# Physics process continues until death anim finishes? Or stop immediately in _die?
-			# Assuming it continues for anim, no further action needed here.
 		State.PENCIL_JAB, State.PROTRACTOR_SLICE, State.MULTIPLY_BUFF:
 			handle_action_state_movement(delta) # Slow down/stop during actions
 		State.ERROR:
@@ -219,12 +218,11 @@ func _find_player():
 			player_node = players[0]
 			player_is_dead = false # Assume player is alive when found
 			player_died_connected = false # Reset connection flag
-			# print("DEBUG: Calculator found player.") # Debug
 			_connect_player_died_signal() # Attempt connection immediately
 		else:
 			printerr("ERROR (Calculator): Found node in 'player' group is not CharacterBody2D!")
 			player_node = null
-	# else: # No player found in group, keep player_node as null
+	# else: Keep player_node as null
 
 func _connect_player_died_signal():
 	if is_instance_valid(player_node) and player_node.has_signal("died"):
@@ -232,12 +230,11 @@ func _connect_player_died_signal():
 			var err = player_node.died.connect(Callable(self, "_on_player_died"))
 			if err == OK:
 				player_died_connected = true
-				# print("DEBUG: Calculator connected to player 'died' signal.") # Debug
 			else:
 				printerr("ERROR (Calculator): Failed to connect to player 'died' signal. Error code: ", err)
-				player_died_connected = false # Ensure flag is false if connection fails
+				player_died_connected = false
 		else:
-			player_died_connected = true # Already connected, update flag just in case
+			player_died_connected = true
 
 # --- AI & Movement ---
 func decide_action_or_move(delta: float) -> void:
@@ -330,48 +327,26 @@ func choose_action() -> void:
 	if is_instance_valid(hitbox_pivot): hitbox_pivot.scale.x = -1 if face_right else 1
 
 	# --- Define Viability Conditions ---
-	# Slice: Close X and Y distance
 	var slice_viable = (x_diff <= protractor_slice_range) and (y_diff <= protractor_slice_max_y_diff)
-	# Jab: Within X/Y combined range
 	var jab_viable = (distance_sq <= pencil_jab_range * pencil_jab_range)
-	# Prefer Slice Movement: If Y is too large for slice but X is okay
 	var should_prioritize_vertical_for_slice = (x_diff <= protractor_slice_range) and (y_diff > protractor_slice_max_y_diff)
 
 	# Reset vertical priority flag before decision
 	prioritize_vertical = false
 
 	# --- Decision Tree ---
-	# 1. Buff Priority (Only if low HP, not already buffed, and meets random chance)
 	if is_low_hp and not is_buffed and randf() < buff_chance:
 		_initiate_action(State.MULTIPLY_BUFF, "multiplication_buff")
 		play_sound(buff_sfx_player, buff_sounds)
-		return
-
-	# 2. Slice Execution (If in perfect range)
 	elif slice_viable:
 		_initiate_action(State.PROTRACTOR_SLICE, "protractor_slice")
-		return
-
-	# 3. Prioritize Vertical for Slice (If X is good, Y is bad)
 	elif should_prioritize_vertical_for_slice:
 		prioritize_vertical = true # SET FLAG to adjust Y position
-		if current_state != State.MOVE: _change_state(State.MOVE) # Ensure moving
-		# print("DEBUG: Prioritizing vertical movement for slice") # Debug
-		return # Let movement handle adjustment
-
-	# 4. Jab Execution (If in jab range and slice not viable/preferred)
+		if current_state != State.MOVE: _change_state(State.MOVE)
 	elif jab_viable:
 		_initiate_action(State.PENCIL_JAB, "pencil_jab")
-		return
-
-	# 5. Move Towards Player (If no attack is viable)
 	else:
 		if current_state != State.MOVE: _change_state(State.MOVE)
-		return # Let movement handle closing the distance
-
-	# 6. Default to Idle (Should ideally not be reached if player is valid)
-	# _change_state(State.IDLE)
-
 
 # --- Action Initiation Helper ---
 func _initiate_action(new_state: State, anim_name: String) -> void:
@@ -389,7 +364,6 @@ func apply_multiplication_buff():
 		buff_timer = buff_duration
 		pencil_jab_damage = int(base_pencil_damage * buff_damage_multiplier)
 		protractor_slice_damage = int(base_protractor_damage * buff_damage_multiplier)
-		# print("Calculator: Buff Applied! Dmg:", pencil_jab_damage, "/", protractor_slice_damage) # Debug
 
 func _expire_buff():
 	if is_buffed:
@@ -397,18 +371,15 @@ func _expire_buff():
 		pencil_jab_damage = base_pencil_damage
 		protractor_slice_damage = base_protractor_damage
 		buff_timer = 0
-		# print("Calculator: Buff Expired.") # Debug
-
 
 # --- Damage & Death Handling ---
-# MODIFIED: Expecting player's global_position as source
-func take_damage(amount: int, damage_source_position: Vector2) -> void:
+# MODIFIED: Accepts damage source node (e.g., player) and position
+func take_damage(amount: int, damage_source_node: Node = null, damage_source_position: Vector2 = global_position) -> void:
 	# Ignore damage if already dead or in the brief interrupt state
 	if current_state == State.DEAD or current_state == State.ERROR: return
 
 	current_hp = max(0, current_hp - amount) # Prevent negative HP
 	emit_signal("hp_changed", current_hp, max_hp)
-	# print("Calculator took damage:", amount, "| HP:", current_hp, "/", max_hp) # Debug
 
 	# Always play generic damage sound
 	play_sound(damage_sfx_player, damage_sounds)
@@ -421,28 +392,48 @@ func take_damage(amount: int, damage_source_position: Vector2) -> void:
 	# Check for low health threshold reaction
 	var health_percentage = float(current_hp) / float(max_hp)
 	if health_percentage <= low_health_threshold_percent:
-		# --- LOW HEALTH REACTION (Interrupting) ---
-		# print("Calculator: Low health hit reaction!") # Debug
-		# Disable hitboxes immediately (use deferred for safety)
+		# LOW HEALTH REACTION (Interrupting)
 		if is_instance_valid(pencil_hitbox_shape): pencil_hitbox_shape.set_deferred("disabled", true)
 		if is_instance_valid(protractor_hitbox_shape): protractor_hitbox_shape.set_deferred("disabled", true)
 		attack_hit_registered_this_action = false # Ensure hit flag reset
 
-		# Change state to ERROR, interrupt current action
 		_change_state(State.ERROR)
 		can_act = false # Prevent acting immediately after error state
 		play_animation("error")
 		play_sound(state_sfx_player, error_sounds) # Play specific error sound
 
-		# Apply knockback away from the damage source
 		var knockback_direction = (global_position - damage_source_position).normalized()
-		if knockback_direction == Vector2.ZERO: # Handle source at same position
+		if knockback_direction == Vector2.ZERO:
 			knockback_direction = Vector2.RIGHT.rotated(randf_range(0, TAU))
 		velocity = knockback_direction * error_state_knockback_strength
 
 		_expire_buff() # Taking a critical hit removes buff
 
-	# else: # HIGH HEALTH REACTION (Non-Interrupting) - Do nothing extra
+	# else: HIGH HEALTH REACTION (Non-Interrupting) - Do nothing extra
+
+
+# NEW: Function called by Player on successful parry
+func trigger_parried_state():
+	# Ignore if already dead or in error state (being parried multiple times rapidly?)
+	if current_state == State.DEAD or current_state == State.ERROR: return
+
+	print("Calculator: Parried!") # Debug
+	_expire_buff() # Remove buff if parried
+
+	# Disable hitboxes immediately
+	if is_instance_valid(pencil_hitbox_shape): pencil_hitbox_shape.set_deferred("disabled", true)
+	if is_instance_valid(protractor_hitbox_shape): protractor_hitbox_shape.set_deferred("disabled", true)
+	attack_hit_registered_this_action = false
+
+	# Change state to ERROR, interrupt current action
+	_change_state(State.ERROR)
+	can_act = false # Prevent acting immediately after error state
+	play_animation("error")
+	# play_sound(state_sfx_player, parried_sounds if parried_sounds.size() > 0 else error_sounds) # Use error sound as fallback
+	play_sound(state_sfx_player, error_sounds) # Using error sound for now
+
+	# Briefly halt movement before error state physics takes over (optional)
+	velocity = Vector2.ZERO
 
 
 func _die():
@@ -455,8 +446,7 @@ func _die():
 
 	# Disable physics interactions safely
 	set_collision_layer_value(3, false) # No longer collides as enemy
-	set_collision_mask_value(1, false) # Doesn't check for world
-	set_collision_mask_value(4, false) # Doesn't check for player attacks
+	set_collision_mask(0) # Clear masks
 	if is_instance_valid(hurtbox):
 		hurtbox.set_deferred("collision_layer", 0)
 		hurtbox.set_deferred("collision_mask", 0)
@@ -466,9 +456,6 @@ func _die():
 	play_animation("death") # Start death animation
 	emit_signal("died") # Signal UI or game manager
 	_expire_buff() # Remove buff on death
-
-	# Optional: Stop physics after animation? Or keep it running?
-	# set_physics_process(false) # Uncomment to stop all updates after starting death
 
 
 # --- Animation & State Helpers ---
@@ -483,7 +470,6 @@ func play_animation(anim_name: String, start_anim_name: String = "") -> void:
 	if start_anim_name != "" and animated_sprite.animation != anim_name and animated_sprite.animation != start_anim_name:
 		if animated_sprite.sprite_frames.has_animation(start_anim_name):
 			final_anim_name = start_anim_name
-		# else: Play loop directly if start anim missing
 
 	# Play the determined animation if it exists and is different
 	if animated_sprite.sprite_frames.has_animation(final_anim_name):
@@ -496,7 +482,6 @@ func _change_state(new_state: State):
 	if current_state != new_state:
 		# print("DEBUG: State change ", State.keys()[current_state], " -> ", State.keys()[new_state]) # Debug state changes
 		current_state = new_state
-		# Add any state entry logic here if needed
 
 
 # --- Signal Handlers ---
@@ -506,19 +491,18 @@ func _on_animation_frame_changed():
 	var current_anim = animated_sprite.animation
 	var current_frame = animated_sprite.frame
 
-	# --- Sound Triggers ---
+	# Sound Triggers
 	if current_state == State.PROTRACTOR_SLICE and current_anim == "protractor_slice":
 		if current_frame == protractor_slice_sound_frame:
 			play_sound(attack_sfx_player, protractor_slice_sounds)
 
-	# --- Hitbox Enabling ---
-	# Only enable if in the correct state and animation
+	# Hitbox Enabling
 	if current_state == State.PENCIL_JAB and current_anim == "pencil_jab":
 		handle_attack_hitbox(pencil_hitbox_shape, 6, current_frame) # Pencil jab frame 6
 	elif current_state == State.PROTRACTOR_SLICE and current_anim == "protractor_slice":
 		handle_attack_hitbox(protractor_hitbox_shape, 7, current_frame) # Protractor slice frame 7
 
-	# --- Buff Application ---
+	# Buff Application
 	if current_state == State.MULTIPLY_BUFF and current_anim == "multiplication_buff":
 		if current_frame == 17 and not is_buffed: # Buff applies on frame 17
 			apply_multiplication_buff()
@@ -536,13 +520,13 @@ func _on_animation_finished() -> void:
 	if not is_instance_valid(animated_sprite): return
 	var finished_anim = animated_sprite.animation
 
-	# --- Ensure Hitboxes Disabled on Action End ---
+	# Ensure Hitboxes Disabled on Action End
 	if finished_anim == "pencil_jab" and is_instance_valid(pencil_hitbox_shape):
 		pencil_hitbox_shape.set_deferred("disabled", true)
 	elif finished_anim == "protractor_slice" and is_instance_valid(protractor_hitbox_shape):
 		protractor_hitbox_shape.set_deferred("disabled", true)
 
-	# --- State Transitions Based on Finished Animation ---
+	# State Transitions Based on Finished Animation
 	if current_state == State.DEAD: return # No transitions if dead
 
 	if player_is_dead:
@@ -561,23 +545,12 @@ func _on_animation_finished() -> void:
 		State.MULTIPLY_BUFF:
 			if finished_anim == "multiplication_buff": _transition_to_idle_after_action()
 		State.MOVE:
-			# If a move_start animation finishes, play the loop
-			if finished_anim == "move_start":
-				play_animation("move_loop") # Loop automatically
-			# If move_loop finishes (shouldn't normally?), check state
+			if finished_anim == "move_start": play_animation("move_loop")
 			elif finished_anim == "move_loop":
-				if current_state != State.MOVE: _change_state(State.IDLE) # Go idle if state changed mid-loop
-		State.IDLE:
-			# If idle animation finishes (unlikely unless 1 frame), just stay idle
-			pass
+				if current_state != State.MOVE: _change_state(State.IDLE)
+		State.IDLE: pass
 		State.DEAD:
-			if finished_anim == "death":
-				# Death animation finished. Can optionally hide or queue_free here.
-				# print("Calculator death animation complete.") # Debug
-				# set_physics_process(false) # Ensure physics stops if not done in _die()
-				# hide() # Or queue_free()
-				pass
-
+			if finished_anim == "death": pass # Death animation finished
 
 func _transition_to_idle_after_action():
 	# Common logic for returning to idle after an action animation finishes
@@ -588,41 +561,39 @@ func _transition_to_idle_after_action():
 
 
 # --- Hitbox Collision Handlers ---
+# MODIFIED: Pass 'self' to player's take_damage call
 func _on_pencil_hitbox_body_entered(body: Node2D):
-	# Check if hitting the player during the correct state and hitbox is active
 	if current_state == State.PENCIL_JAB and \
 	   is_instance_valid(pencil_hitbox_shape) and not pencil_hitbox_shape.disabled and \
 	   not attack_hit_registered_this_action and \
 	   body.is_in_group("player"):
 
-		if body.has_method("is_invulnerable") and body.has_method("take_damage"):
-			if body.is_invulnerable(): return # Player is rolling or hit
+		# Cast to player type for type safety, though group check is main guard
+		var player = body as CharacterBody2D
+		if not is_instance_valid(player): return
 
-			# print("Calculator hitting player with Pencil Jab") # Debug
+		# Check player methods BEFORE calling them
+		if player.has_method("take_damage"):
 			play_sound(hit_player_sfx_player, pencil_hit_sounds)
-
-			# Apply damage and knockback (source is self)
-			body.call("take_damage", pencil_jab_damage, global_position)
-
+			# Pass self (Calculator node) as damage_source_node
+			player.call("take_damage", pencil_jab_damage, self, global_position)
 			attack_hit_registered_this_action = true # Prevent multi-hit
 			pencil_hitbox_shape.set_deferred("disabled", true) # Disable immediately
 
+# MODIFIED: Pass 'self' to player's take_damage call
 func _on_protractor_hitbox_body_entered(body: Node2D):
-	# Check if hitting the player during the correct state and hitbox is active
 	if current_state == State.PROTRACTOR_SLICE and \
 	   is_instance_valid(protractor_hitbox_shape) and not protractor_hitbox_shape.disabled and \
 	   not attack_hit_registered_this_action and \
 	   body.is_in_group("player"):
 
-		if body.has_method("is_invulnerable") and body.has_method("take_damage"):
-			if body.is_invulnerable(): return # Player is rolling or hit
+		var player = body as CharacterBody2D
+		if not is_instance_valid(player): return
 
-			# print("Calculator hitting player with Protractor Slice") # Debug
+		if player.has_method("take_damage"):
 			play_sound(hit_player_sfx_player, protractor_hit_sounds)
-
-			# Apply damage and knockback (source is self)
-			body.call("take_damage", protractor_slice_damage, global_position)
-
+			# Pass self (Calculator node) as damage_source_node
+			player.call("take_damage", protractor_slice_damage, self, global_position)
 			attack_hit_registered_this_action = true # Prevent multi-hit
 			protractor_hitbox_shape.set_deferred("disabled", true) # Disable immediately
 

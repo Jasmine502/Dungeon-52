@@ -466,7 +466,7 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cad13"]
-size = Vector2(514, 466)
+size = Vector2(514, 550)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_el515"]
 size = Vector2(115.14, 302.862)
@@ -479,7 +479,7 @@ radius = 335.0
 height = 670.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ujji5"]
-size = Vector2(129.564, 430.722)
+size = Vector2(129.564, 485.786)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_f27tb"]
 radius = 318.006
@@ -503,13 +503,12 @@ collision_layer = 16
 collision_mask = 8
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
-position = Vector2(114, -262)
+position = Vector2(114, -220)
 shape = SubResource("RectangleShape2D_cad13")
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="Hurtbox"]
 position = Vector2(-68.4118, -81.0937)
 rotation = 0.610161
-scale = Vector2(1, 1)
 shape = SubResource("RectangleShape2D_el515")
 
 [node name="CollisionShape2D3" type="CollisionShape2D" parent="Hurtbox"]
@@ -527,9 +526,8 @@ collision_layer = 32
 collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="HitboxPivot/PencilHitbox"]
-position = Vector2(-407.374, 118.151)
+position = Vector2(-428.483, 135.827)
 rotation = 0.873677
-scale = Vector2(1, 1)
 shape = SubResource("RectangleShape2D_ujji5")
 
 [node name="ProtractorHitbox" type="Area2D" parent="HitboxPivot"]

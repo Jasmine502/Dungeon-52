@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3 uid="uid://bcfmhvodla6wg"]
+[gd_scene load_steps=28 format=3 uid="uid://bcfmhvodla6wg"]
 
 [ext_resource type="PackedScene" uid="uid://q5ggxlcdrid3" path="res://Player/player.tscn" id="1_gojnm"]
 [ext_resource type="PackedScene" uid="uid://fvb45fjuy6tv" path="res://Enemies/Bosses/Calculator/calculator.tscn" id="2_1c2mv"]
@@ -19,8 +19,6 @@
 [ext_resource type="AudioStream" uid="uid://cnb4t7dctnwii" path="res://Player/Sounds/Ahh 2.wav" id="12_x0e4d"]
 [ext_resource type="AudioStream" uid="uid://chdac1bfnbs6k" path="res://Player/Sounds/Mmm Hurt.wav" id="13_yisjc"]
 [ext_resource type="AudioStream" uid="uid://bggs60raf24cw" path="res://Player/Sounds/Fuck.wav" id="14_hmau8"]
-[ext_resource type="AudioStream" uid="uid://b7fwm7xyygg8s" path="res://Player/Sounds/Death 1.wav" id="15_ce8rq"]
-[ext_resource type="AudioStream" uid="uid://cavo32qh04amo" path="res://Player/Sounds/Death 2.wav" id="16_mpyyl"]
 [ext_resource type="AudioStream" uid="uid://cgxg3d06nx53h" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash.wav" id="18_bxgge"]
 [ext_resource type="AudioStream" uid="uid://dcrpo4p6nhq0w" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash Hit Flesh 1.wav" id="19_rmf6y"]
 [ext_resource type="AudioStream" uid="uid://d4ix18who51fj" path="res://Enemies/Bosses/Calculator/Sounds/Protractor Slash Hit Flesh 2.wav" id="20_mebjf"]
@@ -79,7 +77,6 @@ attack_sounds = Array[AudioStream]([ExtResource("3_0dbuy"), ExtResource("4_f55p2
 attack_grunts = Array[AudioStream]([ExtResource("7_dny34"), ExtResource("8_bxgge"), ExtResource("9_rmf6y")])
 jump_grunt_sounds = Array[AudioStream]([ExtResource("10_mebjf")])
 damage_grunt_sounds = Array[AudioStream]([ExtResource("11_sxacm"), ExtResource("12_x0e4d"), ExtResource("13_yisjc"), ExtResource("14_hmau8")])
-death_sounds = Array[AudioStream]([ExtResource("15_ce8rq"), ExtResource("16_mpyyl")])
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
 
