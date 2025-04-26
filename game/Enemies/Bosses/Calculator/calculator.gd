@@ -13,7 +13,7 @@ extends CharacterBody2D
 @export var knockback_strength_on_hit: float = 150.0
 # Knockback strength when taking damage in ERROR state
 @export var error_state_knockback_strength: float = 180.0
-# NEW: Duration of stun after being parried
+# Duration of stun after being parried
 @export var parry_stun_duration: float = 2.5
 
 # AI / Movement Parameters
@@ -56,14 +56,14 @@ var current_state: State = State.IDLE
 
 # Internal Variables
 var current_hp: int
-var player_node: CharacterBody2D = null
+var player_node: CharacterBody2D = null # Reference to the player character
 var can_act: bool = true # Controls if AI can make a new decision/start action
 var ai_timer: float = 0.0 # Timer for AI decision cooldown
 var attack_hit_registered_this_action: bool = false # Prevent multi-hits per attack animation
 var player_died_connected: bool = false # Track if player died signal is connected
 var player_is_dead: bool = false # Track player state locally
 var prioritize_vertical: bool = false # Flag for AI vertical movement focus
-# NEW: Timer for parry stun duration
+# Timer for parry stun duration
 var parry_stun_timer: float = 0.0
 
 # Signals for UI
@@ -132,18 +132,19 @@ func _ready() -> void:
 	print("Calculator Ready. HP=", current_hp)
 
 # --- Audio Helper ---
-func play_sound(player_node: AudioStreamPlayer2D, sound_variations: Array, p_min_pitch: float = min_pitch, p_max_pitch: float = max_pitch) -> void:
-	if not is_instance_valid(player_node): return
+# Renamed parameter 'player_node' to 'audio_player_node' to avoid shadowing class variable
+func play_sound(audio_player_node: AudioStreamPlayer2D, sound_variations: Array, p_min_pitch: float = min_pitch, p_max_pitch: float = max_pitch) -> void:
+	if not is_instance_valid(audio_player_node): return
 	if sound_variations.is_empty(): return
 
 	var sound_stream = sound_variations.pick_random()
 	if not sound_stream is AudioStream:
-		printerr("Warning (Calculator): Invalid item in sound variations array for node: ", player_node.name)
+		printerr("Warning (Calculator): Invalid item in sound variations array for node: ", audio_player_node.name)
 		return
 
-	player_node.stream = sound_stream
-	player_node.pitch_scale = randf_range(p_min_pitch, p_max_pitch)
-	player_node.play()
+	audio_player_node.stream = sound_stream
+	audio_player_node.pitch_scale = randf_range(p_min_pitch, p_max_pitch)
+	audio_player_node.play()
 
 # --- Setup & Connections ---
 func _connect_internal_signals():
@@ -385,22 +386,36 @@ func _expire_buff():
 		buff_timer = 0
 
 # --- Damage & Death Handling ---
-func take_damage(amount: int, damage_source_node: Node = null, damage_source_position: Vector2 = global_position) -> void:
-	# Ignore damage if already dead or in the ERROR state while the parry stun is active
-	if current_state == State.DEAD or (current_state == State.ERROR and parry_stun_timer > 0): return
+# Prefixed unused 'damage_source_node' parameter with underscore
+func take_damage(amount: int, _damage_source_node: Node = null, damage_source_position: Vector2 = global_position) -> void:
+	# --- 1. Initial Check: Ignore damage only if already DEAD ---
+	if current_state == State.DEAD: return
 
+	# Remember if currently stunned by parry BEFORE taking damage
+	var was_parry_stunned = (current_state == State.ERROR and parry_stun_timer > 0)
+
+	# --- 2. Apply Damage ---
 	current_hp = max(0, current_hp - amount) # Prevent negative HP
 	emit_signal("hp_changed", current_hp, max_hp)
 
 	# Always play generic damage sound
 	play_sound(damage_sfx_player, damage_sounds)
 
-	# Check for death first
+	# --- 3. Check for Death ---
 	if current_hp <= 0:
 		_die()
 		return # Stop further processing if dead
 
-	# Check for low health threshold reaction
+	# --- 4. Handle Reaction (if not dead) ---
+	# If hit while parry-stunned, just take damage and play sound (already done).
+	# Do NOT trigger low health check or knockback again.
+	if was_parry_stunned:
+		# Optionally, restart the error animation briefly for visual feedback?
+		if is_instance_valid(animated_sprite):
+			animated_sprite.play("error", -1, 1.5) # Play faster? Or restart?
+		return
+
+	# --- 5. If NOT parry-stunned, check for standard low-health reaction ---
 	var health_percentage = float(current_hp) / float(max_hp)
 	if health_percentage <= low_health_threshold_percent:
 		# LOW HEALTH REACTION (Interrupting)
@@ -409,11 +424,12 @@ func take_damage(amount: int, damage_source_node: Node = null, damage_source_pos
 		attack_hit_registered_this_action = false # Ensure hit flag reset
 
 		_change_state(State.ERROR)
-		parry_stun_timer = 0.0 # Regular damage doesn't trigger parry stun
+		parry_stun_timer = 0.0 # Ensure this isn't treated as parry stun
 		can_act = false # Prevent acting immediately after error state
 		play_animation("error")
 		play_sound(state_sfx_player, error_sounds) # Play specific error sound
 
+		# Apply knockback for low-health hit
 		var knockback_direction = (global_position - damage_source_position).normalized()
 		if knockback_direction == Vector2.ZERO:
 			knockback_direction = Vector2.RIGHT.rotated(randf_range(0, TAU))
@@ -421,7 +437,7 @@ func take_damage(amount: int, damage_source_node: Node = null, damage_source_pos
 
 		_expire_buff() # Taking a critical hit removes buff
 
-	# else: HIGH HEALTH REACTION (Non-Interrupting) - Do nothing extra
+	# else: HIGH HEALTH REACTION (Non-Interrupting) - Do nothing extra if not low HP and not parry stunned
 
 
 # Function called by Player on successful parry
@@ -557,7 +573,7 @@ func _on_animation_finished() -> void:
 		State.PROTRACTOR_SLICE:
 			if finished_anim == "protractor_slice": _transition_to_idle_after_action()
 		State.ERROR:
-			# MODIFIED: Only transition if parry stun is NOT active
+			# Only transition if parry stun is NOT active
 			if finished_anim == "error" and parry_stun_timer <= 0:
 				_transition_to_idle_after_action() # Recover ONLY if stun timer finished
 			# If animation finished but timer still running, stay in ERROR state

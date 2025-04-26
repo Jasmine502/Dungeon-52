@@ -79,6 +79,7 @@ jump_grunt_sounds = Array[AudioStream]([ExtResource("10_mebjf")])
 damage_grunt_sounds = Array[AudioStream]([ExtResource("11_sxacm"), ExtResource("12_x0e4d"), ExtResource("13_yisjc"), ExtResource("14_hmau8")])
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
+position_smoothing_speed = 2.0
 
 [node name="Calculator" parent="." groups=["enemies"] instance=ExtResource("2_1c2mv")]
 position = Vector2(497, -102)
