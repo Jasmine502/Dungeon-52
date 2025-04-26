@@ -411,8 +411,9 @@ func take_damage(amount: int, _damage_source_node: Node = null, damage_source_po
 	# Do NOT trigger low health check or knockback again.
 	if was_parry_stunned:
 		# Optionally, restart the error animation briefly for visual feedback?
-		if is_instance_valid(animated_sprite):
-			animated_sprite.play("error", -1, 1.5) # Play faster? Or restart?
+		if is_instance_valid(animated_sprite) and animated_sprite.animation == "error":
+			# Restart animation to give visual feedback on consecutive hits during stun
+			animated_sprite.play("error")
 		return
 
 	# --- 5. If NOT parry-stunned, check for standard low-health reaction ---
@@ -606,16 +607,15 @@ func _on_pencil_hitbox_body_entered(body: Node2D):
 	   not attack_hit_registered_this_action and \
 	   body.is_in_group("player"):
 
-		# Cast to player type for type safety, though group check is main guard
 		var player = body as CharacterBody2D
 		if not is_instance_valid(player): return
 
-		# Check player methods BEFORE calling them
 		if player.has_method("take_damage"):
-			play_sound(hit_player_sfx_player, pencil_hit_sounds)
-			# Pass self (Calculator node) as damage_source_node
-			player.call("take_damage", pencil_jab_damage, self, global_position)
-			attack_hit_registered_this_action = true # Prevent multi-hit
+			# Call take_damage and check its return value
+			var damage_processed = player.call("take_damage", pencil_jab_damage, self, global_position)
+			if damage_processed: # Only play sound if damage wasn't ignored (by roll etc.)
+				play_sound(hit_player_sfx_player, pencil_hit_sounds)
+			attack_hit_registered_this_action = true # Prevent multi-hit regardless of sound
 			pencil_hitbox_shape.set_deferred("disabled", true) # Disable immediately
 
 func _on_protractor_hitbox_body_entered(body: Node2D):
@@ -628,10 +628,11 @@ func _on_protractor_hitbox_body_entered(body: Node2D):
 		if not is_instance_valid(player): return
 
 		if player.has_method("take_damage"):
-			play_sound(hit_player_sfx_player, protractor_hit_sounds)
-			# Pass self (Calculator node) as damage_source_node
-			player.call("take_damage", protractor_slice_damage, self, global_position)
-			attack_hit_registered_this_action = true # Prevent multi-hit
+			# Call take_damage and check its return value
+			var damage_processed = player.call("take_damage", protractor_slice_damage, self, global_position)
+			if damage_processed: # Only play sound if damage wasn't ignored (by roll etc.)
+				play_sound(hit_player_sfx_player, protractor_hit_sounds)
+			attack_hit_registered_this_action = true # Prevent multi-hit regardless of sound
 			protractor_hitbox_shape.set_deferred("disabled", true) # Disable immediately
 
 

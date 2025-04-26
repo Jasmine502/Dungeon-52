@@ -580,7 +580,8 @@ func _end_parry() -> void:
 
 
 # --- Damage & Death ---
-func take_damage(amount: int, damage_source_node: Node = null, damage_source_position: Vector2 = global_position) -> void:
+# MODIFIED: Returns bool indicating if damage/parry was processed
+func take_damage(amount: int, damage_source_node: Node = null, damage_source_position: Vector2 = global_position) -> bool:
 	# --- 1. Check for Successful Parry ---
 	if is_parrying_successfully():
 		print("Parry Attempt vs incoming damage!") # Debug
@@ -588,20 +589,18 @@ func take_damage(amount: int, damage_source_node: Node = null, damage_source_pos
 			damage_source_node.trigger_parried_state() # Tell the enemy it got parried
 			print("Parry Successful against:", damage_source_node.name) # Debug
 			play_sound(parry_sfx_player, parry_success_sounds) # Play parry success sound
-			# Optional: Gain brief invulnerability or restore some stamina on successful parry?
-			# current_stamina = min(max_stamina, current_stamina + 10)
 			_end_parry() # Reset parry state immediately after success
 		else:
 			# Still counts as a successful parry even if enemy can't react, play sound
 			play_sound(parry_sfx_player, parry_success_sounds)
 			printerr("WARNING (Player): Parry successful but damage_source_node invalid or missing trigger_parried_state:", damage_source_node)
 			_end_parry() # Still end parry state
-		return # Crucial: Do not proceed to take damage if parried
+		return true # Crucial: Indicate parry was successful
 
 	# --- 2. Check for Other Invulnerabilities (e.g., Roll) ---
 	if is_invulnerable():
 		# print("Damage ignored due to invulnerability (Rolling/Hit)") # Debug
-		return # Do not take damage
+		return false # Crucial: Indicate damage was ignored
 
 	# --- 3. Process Damage Taken ---
 	current_hp = max(0, current_hp - amount)
@@ -635,6 +634,8 @@ func take_damage(amount: int, damage_source_node: Node = null, damage_source_pos
 		# Apply force - stronger horizontal, moderate vertical pop
 		velocity.x = knockback_direction.x * knockback_strength
 		velocity.y = knockback_direction.y * knockback_strength * 0.5 - 100 # Add a small upward pop
+
+	return true # Indicate damage was processed (taken or killed)
 
 
 # Helper function to check standard invulnerability conditions (Roll iFrames)
