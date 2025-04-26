@@ -1,4 +1,4 @@
-[gd_scene load_steps=81 format=3 uid="uid://q5ggxlcdrid3"]
+[gd_scene load_steps=83 format=3 uid="uid://q5ggxlcdrid3"]
 
 [ext_resource type="Script" uid="uid://c6k2rxl7g70cq" path="res://Player/player.gd" id="1_od3ui"]
 [ext_resource type="AudioStream" uid="uid://b7fwm7xyygg8s" path="res://Player/Sounds/Death 1.wav" id="2_ac8n6"]
@@ -10,6 +10,8 @@
 [ext_resource type="Texture2D" uid="uid://b6ukk8l8q31is" path="res://Player/Animations/Attack0003.png" id="4_x3vf3"]
 [ext_resource type="Texture2D" uid="uid://cavg04jjh0w7i" path="res://Player/Animations/Attack0004.png" id="5_apopc"]
 [ext_resource type="Texture2D" uid="uid://dhhrmsgxak2er" path="res://Player/Animations/Attack0005.png" id="6_5htga"]
+[ext_resource type="AudioStream" uid="uid://g6klj8441sd" path="res://Player/Sounds/Breathy Hm.wav" id="6_lhliw"]
+[ext_resource type="AudioStream" uid="uid://ms58eg48wvib" path="res://Player/Sounds/Drink.wav" id="7_11wp0"]
 [ext_resource type="Texture2D" uid="uid://dlhyvbulyw28i" path="res://Player/Animations/Attack0006.png" id="7_p5o4e"]
 [ext_resource type="Texture2D" uid="uid://df3gr3fhbjuh4" path="res://Player/Animations/Attack0007.png" id="8_gu6f8"]
 [ext_resource type="Texture2D" uid="uid://bd1xnq7jo7j2a" path="res://Player/Animations/Smiley dead0001.png" id="9_gvnt1"]
@@ -360,6 +362,8 @@ script = ExtResource("1_od3ui")
 death_sounds = Array[AudioStream]([ExtResource("2_ac8n6"), ExtResource("3_3bga3")])
 parry_try_sounds = Array[AudioStream]([ExtResource("2_fatyj")])
 parry_success_sounds = Array[AudioStream]([ExtResource("3_32uw3")])
+roll_sounds = Array[AudioStream]([ExtResource("6_lhliw")])
+use_item_sounds = Array[AudioStream]([ExtResource("7_11wp0")])
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 texture_repeat = 2
@@ -396,3 +400,5 @@ disabled = true
 [node name="DeathSFXPlayer" type="AudioStreamPlayer2D" parent="."]
 
 [node name="ParrySFXPlayer" type="AudioStreamPlayer2D" parent="."]
+
+[node name="ItemSFXPlayer" type="AudioStreamPlayer2D" parent="."]

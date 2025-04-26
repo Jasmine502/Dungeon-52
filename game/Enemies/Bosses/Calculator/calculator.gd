@@ -13,6 +13,8 @@ extends CharacterBody2D
 @export var knockback_strength_on_hit: float = 150.0
 # Knockback strength when taking damage in ERROR state
 @export var error_state_knockback_strength: float = 180.0
+# NEW: Duration of stun after being parried
+@export var parry_stun_duration: float = 2.5
 
 # AI / Movement Parameters
 @export var pencil_jab_range: float = 180.0
@@ -41,8 +43,8 @@ var base_protractor_damage: int
 @export var buff_sounds: Array[AudioStream] = [] # Played when buff starts
 @export var damage_sounds: Array[AudioStream] = [] # Played on ALL hits taken
 @export var death_sounds: Array[AudioStream] = [] # Played on death anim start
-@export var error_sounds: Array[AudioStream] = [] # Played only on LOW health hits (interrupt)
-# @export var parried_sounds: Array[AudioStream] = [] # TODO: Add optional specific sound for being parried
+@export var error_sounds: Array[AudioStream] = [] # Played on LOW health hits (interrupt) / Parry
+# @export var parried_sounds: Array[AudioStream] = [] # Optional specific sound for being parried
 
 @export_group("Audio Settings")
 @export var min_pitch: float = 0.95
@@ -61,6 +63,8 @@ var attack_hit_registered_this_action: bool = false # Prevent multi-hits per att
 var player_died_connected: bool = false # Track if player died signal is connected
 var player_is_dead: bool = false # Track player state locally
 var prioritize_vertical: bool = false # Flag for AI vertical movement focus
+# NEW: Timer for parry stun duration
+var parry_stun_timer: float = 0.0
 
 # Signals for UI
 signal hp_changed(current_value, max_value)
@@ -194,7 +198,15 @@ func _physics_process(delta: float) -> void:
 		State.PENCIL_JAB, State.PROTRACTOR_SLICE, State.MULTIPLY_BUFF:
 			handle_action_state_movement(delta) # Slow down/stop during actions
 		State.ERROR:
-			handle_error_state_movement(delta) # Apply knockback fade
+			# Handle parry stun timer
+			if parry_stun_timer > 0:
+				parry_stun_timer -= delta
+				if parry_stun_timer <= 0:
+					# Parry stun finished, allow recovery IF still in error state
+					# (animation might have finished earlier)
+					if current_state == State.ERROR:
+						_transition_to_idle_after_action()
+			handle_error_state_movement(delta) # Apply knockback fade regardless of timer
 		State.IDLE, State.MOVE:
 			# AI Decision Making
 			if can_act:
@@ -373,10 +385,9 @@ func _expire_buff():
 		buff_timer = 0
 
 # --- Damage & Death Handling ---
-# MODIFIED: Accepts damage source node (e.g., player) and position
 func take_damage(amount: int, damage_source_node: Node = null, damage_source_position: Vector2 = global_position) -> void:
-	# Ignore damage if already dead or in the brief interrupt state
-	if current_state == State.DEAD or current_state == State.ERROR: return
+	# Ignore damage if already dead or in the ERROR state while the parry stun is active
+	if current_state == State.DEAD or (current_state == State.ERROR and parry_stun_timer > 0): return
 
 	current_hp = max(0, current_hp - amount) # Prevent negative HP
 	emit_signal("hp_changed", current_hp, max_hp)
@@ -398,6 +409,7 @@ func take_damage(amount: int, damage_source_node: Node = null, damage_source_pos
 		attack_hit_registered_this_action = false # Ensure hit flag reset
 
 		_change_state(State.ERROR)
+		parry_stun_timer = 0.0 # Regular damage doesn't trigger parry stun
 		can_act = false # Prevent acting immediately after error state
 		play_animation("error")
 		play_sound(state_sfx_player, error_sounds) # Play specific error sound
@@ -412,9 +424,9 @@ func take_damage(amount: int, damage_source_node: Node = null, damage_source_pos
 	# else: HIGH HEALTH REACTION (Non-Interrupting) - Do nothing extra
 
 
-# NEW: Function called by Player on successful parry
+# Function called by Player on successful parry
 func trigger_parried_state():
-	# Ignore if already dead or in error state (being parried multiple times rapidly?)
+	# Ignore if already dead or already in the error state from a previous parry/hit
 	if current_state == State.DEAD or current_state == State.ERROR: return
 
 	print("Calculator: Parried!") # Debug
@@ -428,9 +440,11 @@ func trigger_parried_state():
 	# Change state to ERROR, interrupt current action
 	_change_state(State.ERROR)
 	can_act = false # Prevent acting immediately after error state
-	play_animation("error")
+	parry_stun_timer = parry_stun_duration # START the parry stun timer
+
+	play_animation("error") # Play the visual feedback animation
 	# play_sound(state_sfx_player, parried_sounds if parried_sounds.size() > 0 else error_sounds) # Use error sound as fallback
-	play_sound(state_sfx_player, error_sounds) # Using error sound for now
+	play_sound(state_sfx_player, error_sounds) # Using error sound for parry feedback
 
 	# Briefly halt movement before error state physics takes over (optional)
 	velocity = Vector2.ZERO
@@ -439,7 +453,7 @@ func trigger_parried_state():
 func _die():
 	if current_state == State.DEAD: return # Prevent multiple deaths
 	_change_state(State.DEAD)
-	can_act = false; prioritize_vertical = false; velocity = Vector2.ZERO
+	can_act = false; prioritize_vertical = false; velocity = Vector2.ZERO; parry_stun_timer = 0.0
 	print("Calculator: Defeated!")
 
 	play_sound(death_sfx_player, death_sounds) # Play death sound
@@ -513,6 +527,8 @@ func handle_attack_hitbox(shape: CollisionShape2D, hit_frame: int, current_frame
 	if current_frame == hit_frame:
 		if shape.disabled: shape.disabled = false
 	else:
+		# Ensure hitbox is disabled if not on the active frame
+		# Check shape.disabled before setting to avoid redundant calls
 		if not shape.disabled: shape.disabled = true
 
 
@@ -541,19 +557,26 @@ func _on_animation_finished() -> void:
 		State.PROTRACTOR_SLICE:
 			if finished_anim == "protractor_slice": _transition_to_idle_after_action()
 		State.ERROR:
-			if finished_anim == "error": _transition_to_idle_after_action() # Can act after error anim
+			# MODIFIED: Only transition if parry stun is NOT active
+			if finished_anim == "error" and parry_stun_timer <= 0:
+				_transition_to_idle_after_action() # Recover ONLY if stun timer finished
+			# If animation finished but timer still running, stay in ERROR state
 		State.MULTIPLY_BUFF:
 			if finished_anim == "multiplication_buff": _transition_to_idle_after_action()
 		State.MOVE:
 			if finished_anim == "move_start": play_animation("move_loop")
 			elif finished_anim == "move_loop":
+				# Only transition out of loop if state changed
 				if current_state != State.MOVE: _change_state(State.IDLE)
 		State.IDLE: pass
 		State.DEAD:
 			if finished_anim == "death": pass # Death animation finished
 
 func _transition_to_idle_after_action():
-	# Common logic for returning to idle after an action animation finishes
+	# Common logic for returning to idle after an action/error state finishes
+	# Ensure we are not dead before enabling actions
+	if current_state == State.DEAD: return
+
 	can_act = true # Allow new decisions
 	_change_state(State.IDLE)
 	# Optional: Add a small delay before next AI tick?
@@ -561,7 +584,6 @@ func _transition_to_idle_after_action():
 
 
 # --- Hitbox Collision Handlers ---
-# MODIFIED: Pass 'self' to player's take_damage call
 func _on_pencil_hitbox_body_entered(body: Node2D):
 	if current_state == State.PENCIL_JAB and \
 	   is_instance_valid(pencil_hitbox_shape) and not pencil_hitbox_shape.disabled and \
@@ -580,7 +602,6 @@ func _on_pencil_hitbox_body_entered(body: Node2D):
 			attack_hit_registered_this_action = true # Prevent multi-hit
 			pencil_hitbox_shape.set_deferred("disabled", true) # Disable immediately
 
-# MODIFIED: Pass 'self' to player's take_damage call
 func _on_protractor_hitbox_body_entered(body: Node2D):
 	if current_state == State.PROTRACTOR_SLICE and \
 	   is_instance_valid(protractor_hitbox_shape) and not protractor_hitbox_shape.disabled and \
@@ -604,11 +625,15 @@ func _on_player_died():
 	player_died_connected = false # Reset connection flag
 	player_is_dead = true # Mark player as dead
 	prioritize_vertical = false # Ensure flag is off
+	parry_stun_timer = 0.0 # Clear stun timer if player dies
 
 	# If currently moving or idle, go directly to idle
 	if current_state == State.IDLE or current_state == State.MOVE:
 		_change_state(State.IDLE)
 		velocity = Vector2.ZERO # Stop movement
+
+	# If in an action state when player dies, finish animation then go idle
+	# (handled by _on_animation_finished checking player_is_dead)
 
 	# Disable hitboxes if they were somehow active
 	if is_instance_valid(pencil_hitbox_shape): pencil_hitbox_shape.set_deferred("disabled", true)
