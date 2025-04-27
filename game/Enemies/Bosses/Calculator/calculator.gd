@@ -8,7 +8,7 @@ extends CharacterBody2D
 @export var pencil_jab_damage: int = 15
 @export var protractor_slice_damage: int = 25
 # Threshold for changing damage reaction (e.g., 0.3 = 30% HP)
-@export var low_health_threshold_percent: float = 0.25
+@export var low_health_threshold_percent: float = 0.40
 # Knockback strength when hitting player
 @export var knockback_strength_on_hit: float = 150.0
 # Knockback strength when taking damage in ERROR state
