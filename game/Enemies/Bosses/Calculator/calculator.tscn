@@ -1,4 +1,4 @@
-[gd_scene load_steps=117 format=3 uid="uid://fvb45fjuy6tv"]
+[gd_scene load_steps=118 format=3 uid="uid://fvb45fjuy6tv"]
 
 [ext_resource type="Texture2D" uid="uid://cvm61es64wlqj" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0001.png" id="1_smmym"]
 [ext_resource type="Script" uid="uid://ba3fj6s51tvqt" path="res://Enemies/Bosses/Calculator/calculator.gd" id="1_ujji5"]
@@ -24,28 +24,17 @@
 [ext_resource type="Texture2D" uid="uid://chk16ovnyr76p" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0015.png" id="15_1d6xj"]
 [ext_resource type="Texture2D" uid="uid://bpicgkmuvntym" path="res://Enemies/Bosses/Calculator/Animations/Death/C_Dead0016.png" id="16_esxbn"]
 [ext_resource type="Texture2D" uid="uid://5kdqygk6exvp" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0001.png" id="17_cad13"]
-[ext_resource type="Texture2D" uid="uid://cefhljdctiq18" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0001.png" id="17_sp2at"]
-[ext_resource type="Texture2D" uid="uid://qqwxm05rttqh" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0002.png" id="18_datb2"]
 [ext_resource type="Texture2D" uid="uid://bifb21s8wb4v7" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0002.png" id="18_ujji5"]
 [ext_resource type="Texture2D" uid="uid://bn7ja62ebqfkv" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0003.png" id="19_f27tb"]
-[ext_resource type="Texture2D" uid="uid://buejuyrg0vnfl" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0003.png" id="19_qk2o8"]
 [ext_resource type="Texture2D" uid="uid://dusist5hhmek6" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0004.png" id="20_f5jqb"]
-[ext_resource type="Texture2D" uid="uid://by5rdis3e0lgp" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0004.png" id="20_v4obx"]
-[ext_resource type="Texture2D" uid="uid://my7fjvt2eoab" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0005.png" id="21_mn1wd"]
 [ext_resource type="Texture2D" uid="uid://q2ke3k0ygop5" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0005.png" id="21_mw11g"]
 [ext_resource type="Texture2D" uid="uid://ckgy8v7obw05n" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0006.png" id="22_5fovk"]
-[ext_resource type="Texture2D" uid="uid://1ksswsfew8m4" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0006.png" id="22_v6jby"]
 [ext_resource type="Texture2D" uid="uid://bubjdd0faikti" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0007.png" id="23_71a1r"]
-[ext_resource type="Texture2D" uid="uid://7rnddqpt4dja" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0007.png" id="23_plccf"]
-[ext_resource type="Texture2D" uid="uid://cljqgrgco0olv" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0008.png" id="24_lbdyj"]
 [ext_resource type="Texture2D" uid="uid://dq600ia7wnnbu" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0008.png" id="24_vh7dc"]
-[ext_resource type="Texture2D" uid="uid://1cl5ye8eme32" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0009.png" id="25_pr8xr"]
 [ext_resource type="Texture2D" uid="uid://nxy0wu2hfatg" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0009.png" id="25_xcd5u"]
-[ext_resource type="Texture2D" uid="uid://dc62vg0y7qwq4" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0010.png" id="26_2gump"]
 [ext_resource type="Texture2D" uid="uid://buihwl6u65ao5" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0010.png" id="26_nywtw"]
 [ext_resource type="Texture2D" uid="uid://h1y2v0v6ekwf" path="res://Enemies/Bosses/Calculator/Animations/Hit/C_Hit0011.png" id="27_71tkl"]
-[ext_resource type="Texture2D" uid="uid://crvh6hfsvxck6" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0011.png" id="27_k8o37"]
-[ext_resource type="Texture2D" uid="uid://dvlobsq0134gx" path="res://Enemies/Bosses/Calculator/Animations/Idle/C_Idle0012.png" id="28_0jt5h"]
+[ext_resource type="Texture2D" uid="uid://n45jcwb7mjy2" path="res://Enemies/Bosses/Calculator/Animations/Calculator Idle.png" id="35_sta52"]
 [ext_resource type="Texture2D" uid="uid://tixkb1dith4g" path="res://Enemies/Bosses/Calculator/Animations/Move/C_Move0001.png" id="40_8xq72"]
 [ext_resource type="Texture2D" uid="uid://bean02608ax07" path="res://Enemies/Bosses/Calculator/Animations/Move/C_Move0002.png" id="41_th6q7"]
 [ext_resource type="Texture2D" uid="uid://dydm5fvgfober" path="res://Enemies/Bosses/Calculator/Animations/Move/C_Move0003.png" id="42_xm7d4"]
@@ -109,6 +98,54 @@
 [ext_resource type="Texture2D" uid="uid://bxkr0hybafdsb" path="res://Enemies/Bosses/Calculator/Animations/Slice/C_Slice0013.png" id="100_sdlah"]
 [ext_resource type="Texture2D" uid="uid://cv4dch1d3skwx" path="res://Enemies/Bosses/Calculator/Animations/Slice/C_Slice0014.png" id="101_jr2o4"]
 [ext_resource type="Texture2D" uid="uid://cx6gllnnsd5dq" path="res://Enemies/Bosses/Calculator/Animations/Slice/C_Slice0015.png" id="102_4odqy"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ifc8v"]
+atlas = ExtResource("35_sta52")
+region = Rect2(0, 0, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_q6o7c"]
+atlas = ExtResource("35_sta52")
+region = Rect2(1008, 0, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lm42b"]
+atlas = ExtResource("35_sta52")
+region = Rect2(2016, 0, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7hg53"]
+atlas = ExtResource("35_sta52")
+region = Rect2(3024, 0, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3b6jq"]
+atlas = ExtResource("35_sta52")
+region = Rect2(0, 853, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xuxcf"]
+atlas = ExtResource("35_sta52")
+region = Rect2(1008, 853, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e2puc"]
+atlas = ExtResource("35_sta52")
+region = Rect2(2016, 853, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fkde8"]
+atlas = ExtResource("35_sta52")
+region = Rect2(3024, 853, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gpl1r"]
+atlas = ExtResource("35_sta52")
+region = Rect2(0, 1706, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b4qri"]
+atlas = ExtResource("35_sta52")
+region = Rect2(1008, 1706, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0hkmd"]
+atlas = ExtResource("35_sta52")
+region = Rect2(2016, 1706, 1008, 853)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_02u2h"]
+atlas = ExtResource("35_sta52")
+region = Rect2(3024, 1706, 1008, 853)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_y6go8"]
 animations = [{
@@ -205,40 +242,40 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("17_sp2at")
+"texture": SubResource("AtlasTexture_ifc8v")
 }, {
 "duration": 1.0,
-"texture": ExtResource("18_datb2")
+"texture": SubResource("AtlasTexture_q6o7c")
 }, {
 "duration": 1.0,
-"texture": ExtResource("19_qk2o8")
+"texture": SubResource("AtlasTexture_lm42b")
 }, {
 "duration": 1.0,
-"texture": ExtResource("20_v4obx")
+"texture": SubResource("AtlasTexture_7hg53")
 }, {
 "duration": 1.0,
-"texture": ExtResource("21_mn1wd")
+"texture": SubResource("AtlasTexture_3b6jq")
 }, {
 "duration": 1.0,
-"texture": ExtResource("22_v6jby")
+"texture": SubResource("AtlasTexture_xuxcf")
 }, {
 "duration": 1.0,
-"texture": ExtResource("23_plccf")
+"texture": SubResource("AtlasTexture_e2puc")
 }, {
 "duration": 1.0,
-"texture": ExtResource("24_lbdyj")
+"texture": SubResource("AtlasTexture_fkde8")
 }, {
 "duration": 1.0,
-"texture": ExtResource("25_pr8xr")
+"texture": SubResource("AtlasTexture_gpl1r")
 }, {
 "duration": 1.0,
-"texture": ExtResource("26_2gump")
+"texture": SubResource("AtlasTexture_b4qri")
 }, {
 "duration": 1.0,
-"texture": ExtResource("27_k8o37")
+"texture": SubResource("AtlasTexture_0hkmd")
 }, {
 "duration": 1.0,
-"texture": ExtResource("28_0jt5h")
+"texture": SubResource("AtlasTexture_02u2h")
 }],
 "loop": true,
 "name": &"idle",
@@ -496,7 +533,8 @@ max_pitch = 1.2
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_y6go8")
-animation = &"move_loop"
+animation = &"idle"
+frame_progress = 0.600673
 
 [node name="Hurtbox" type="Area2D" parent="."]
 collision_layer = 16
