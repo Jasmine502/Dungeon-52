@@ -3,7 +3,9 @@ extends CharacterBody2D
 
 # Stats & Exported Variables
 @export var max_hp: int = 200
-@export var speed: float = 70.0
+@export var speed: float = 85.0 # Increased base speed for smoother movement
+@export var acceleration: float = 400.0 # Smooth acceleration for fluid movement
+@export var friction: float = 300.0 # Smooth deceleration when stopping
 @export var detection_radius: float = 10000.0 # Currently unused, logic uses direct player ref
 @export var pencil_jab_damage: int = 15
 @export var protractor_slice_damage: int = 25
@@ -17,15 +19,23 @@ extends CharacterBody2D
 @export var parry_stun_duration: float = 2.5
 
 # AI / Movement Parameters
-@export var pencil_jab_range: float = 180.0
-@export var protractor_slice_range: float = 30.0 # Renamed from max_x_range for clarity
-@export var protractor_slice_max_y_diff: float = 50.0 # Max Y difference to allow slice
+@export var pencil_jab_range: float = 160.0 # Slightly reduced for more challenging positioning
+@export var protractor_slice_range: float = 35.0 # Increased range for better slice opportunities
+@export var protractor_slice_max_y_diff: float = 60.0 # Increased vertical range for slice
 @export var protractor_slice_sound_frame: int = 5 # Frame index (0-based) for slice sound
-@export var buff_chance: float = 0.2 # Chance to buff when low HP decision point occurs
-@export var follow_y_speed_multiplier: float = 0.8 # Speed multiplier for vertical movement
-@export var hover_deadzone: float = 10.0 # Vertical distance within which hovering stops adjusting Y
-@export var ai_cooldown_base: float = 1.5 # Base time between AI decisions
-@export var ai_cooldown_variation: float = 0.3 # Random variation +/-
+@export var buff_chance: float = 0.3 # Increased buff chance for more dynamic fights
+@export var follow_y_speed_multiplier: float = 0.9 # Increased vertical speed multiplier for smoother movement
+@export var hover_deadzone: float = 8.0 # Reduced deadzone for more precise vertical positioning
+@export var vertical_acceleration: float = 300.0 # Separate acceleration for vertical movement
+@export var ai_cooldown_base: float = 1.2 # Faster AI decisions for more challenging gameplay
+@export var ai_cooldown_variation: float = 0.4 # Increased variation for unpredictability
+
+# Enhanced AI Parameters
+@export var prediction_time: float = 0.3 # How far ahead to predict player movement
+@export var retreat_distance: float = 120.0 # Distance to retreat when low on health
+@export var aggressive_distance: float = 200.0 # Distance to become more aggressive
+@export var combo_chance: float = 0.4 # Chance to perform combo attacks
+@export var defensive_mode_threshold: float = 0.3 # HP threshold to enter defensive mode
 
 # Buff Implementation
 @export var buff_duration: float = 10.0
@@ -65,6 +75,14 @@ var player_is_dead: bool = false # Track player state locally
 var prioritize_vertical: bool = false # Flag for AI vertical movement focus
 # Timer for parry stun duration
 var parry_stun_timer: float = 0.0
+
+# Enhanced AI Variables
+var last_player_position: Vector2 = Vector2.ZERO # Track player position for prediction
+var player_velocity: Vector2 = Vector2.ZERO # Track player velocity for prediction
+var is_in_defensive_mode: bool = false # Defensive behavior flag
+var combo_count: int = 0 # Track combo attacks
+var last_action_time: float = 0.0 # Track timing of last action
+var action_pattern: Array = [] # Track recent actions for pattern recognition
 
 # Signals for UI
 signal hp_changed(current_value, max_value)
@@ -132,16 +150,30 @@ func _ready() -> void:
 	print("Calculator Ready. HP=", current_hp)
 
 # --- Audio Helper ---
+# OPTIMIZATION: Cache audio stream validation to reduce redundant checks
+var audio_validation_cache: Dictionary = {}
+
 # Renamed parameter 'player_node' to 'audio_player_node' to avoid shadowing class variable
 func play_sound(audio_player_node: AudioStreamPlayer2D, sound_variations: Array, p_min_pitch: float = min_pitch, p_max_pitch: float = max_pitch) -> void:
 	if not is_instance_valid(audio_player_node): return
 	if sound_variations.is_empty(): return
 
-	var sound_stream = sound_variations.pick_random()
-	if not sound_stream is AudioStream:
-		printerr("Warning (Calculator): Invalid item in sound variations array for node: ", audio_player_node.name)
+	# OPTIMIZATION: Cache sound array validation
+	var cache_key = str(sound_variations)
+	if not audio_validation_cache.has(cache_key):
+		# Validate all sounds in the array once and cache the result
+		var valid_sounds = []
+		for sound in sound_variations:
+			if sound is AudioStream:
+				valid_sounds.append(sound)
+		audio_validation_cache[cache_key] = valid_sounds
+	
+	var valid_sounds = audio_validation_cache[cache_key]
+	if valid_sounds.is_empty():
+		printerr("Warning (Calculator): No valid sounds in variations array for node: ", audio_player_node.name)
 		return
 
+	var sound_stream = valid_sounds.pick_random()
 	audio_player_node.stream = sound_stream
 	audio_player_node.pitch_scale = randf_range(p_min_pitch, p_max_pitch)
 	audio_player_node.play()
@@ -224,7 +256,26 @@ func _physics_process(delta: float) -> void:
 
 
 # --- Player Tracking ---
+# OPTIMIZATION: Cache player reference to avoid repeated tree searches
+var last_player_search_time: float = 0.0
+var player_search_interval: float = 0.2  # Search every 200ms instead of every frame
+
+# FIX: Add decision stability to prevent rapid state changes
+var last_decision_time: float = 0.0
+var decision_stability_interval: float = 0.3  # Minimum time between decisions when player is in awkward positions
+
 func _find_player():
+	# OPTIMIZATION: Only search for player at intervals, not every frame
+	# Use cached reference if recent enough
+	if is_instance_valid(player_node):
+		return  # Player reference is still valid
+	
+	# Only search if enough time has passed since last search
+	var current_time = Time.get_ticks_msec() / 1000.0
+	if current_time - last_player_search_time < player_search_interval:
+		return
+	
+	last_player_search_time = current_time
 	var players = get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
 		if players[0] is CharacterBody2D:
@@ -257,43 +308,49 @@ func decide_action_or_move(delta: float) -> void:
 		prioritize_vertical = false # Reset flag
 		return
 
+	# Update player tracking for prediction
+	update_player_tracking(delta)
+
 	# Decrement AI timer
 	ai_timer -= delta
 	if ai_timer <= 0:
 		choose_action() # Time to make a decision
-		# Reset timer with variation
-		ai_timer = ai_cooldown_base + randf_range(-ai_cooldown_variation, ai_cooldown_variation)
+		# Reset timer with variation (faster when in defensive mode)
+		var cooldown_multiplier = 0.8 if is_in_defensive_mode else 1.0
+		ai_timer = (ai_cooldown_base * cooldown_multiplier) + randf_range(-ai_cooldown_variation, ai_cooldown_variation)
 
 func handle_action_state_movement(delta: float) -> void:
-	# Reduce horizontal velocity during actions
-	var friction = speed * delta * 3 # Friction factor
-	velocity = velocity.move_toward(Vector2(0, velocity.y), friction) # Slow horizontal movement
+	# Smoothly reduce horizontal velocity during actions
+	var action_friction = friction * delta * 2 # Smooth friction during actions
+	velocity = velocity.move_toward(Vector2(0, velocity.y), action_friction) # Smooth horizontal slowdown
 
 func handle_error_state_movement(delta: float) -> void:
-	# Apply friction to slow down from knockback during ERROR state
-	var friction = speed * delta * 2 # Adjust friction as needed
-	velocity = velocity.move_toward(Vector2.ZERO, friction)
+	# Apply smooth friction to slow down from knockback during ERROR state
+	var error_friction = friction * delta * 1.5 # Smooth friction for error state
+	velocity = velocity.move_toward(Vector2.ZERO, error_friction)
 
 func handle_idle_move_state(delta: float) -> void:
 	var target_velocity = Vector2.ZERO
 	var face_player_right = false # Direction to face
+	var vector_to_player = Vector2.ZERO  # Declare outside the if block
 
 	if is_instance_valid(player_node) and not player_is_dead:
-		var vector_to_player = player_node.global_position - global_position
+		vector_to_player = player_node.global_position - global_position
 		var y_diff = vector_to_player.y
 		face_player_right = (vector_to_player.x > 0)
 
 		# Movement logic only if in MOVE state
 		if current_state == State.MOVE:
-			# Vertical Movement: Adjust if further than deadzone OR prioritizing vertical
+			# Vertical Movement: Smooth adjustment with separate acceleration
 			if prioritize_vertical or abs(y_diff) > hover_deadzone:
-				target_velocity.y = sign(y_diff) * speed * follow_y_speed_multiplier
+				var target_y_speed = sign(y_diff) * speed * follow_y_speed_multiplier
+				target_velocity.y = target_y_speed
 			else:
 				target_velocity.y = 0 # Stop vertical adjustment if close enough and not prioritizing
 
 			# Horizontal Movement: Always move towards player X unless prioritizing vertical
 			if prioritize_vertical:
-				target_velocity.x = sign(vector_to_player.x) * speed * 0.3 # Reduced horizontal speed
+				target_velocity.x = sign(vector_to_player.x) * speed * 0.4 # Slightly increased horizontal speed when prioritizing vertical
 			else:
 				target_velocity.x = sign(vector_to_player.x) * speed
 
@@ -312,13 +369,52 @@ func handle_idle_move_state(delta: float) -> void:
 		prioritize_vertical = false # Ensure flag is off
 
 	# Apply facing direction
-	if is_instance_valid(animated_sprite): animated_sprite.flip_h = face_player_right
-	if is_instance_valid(hitbox_pivot): hitbox_pivot.scale.x = -1 if face_player_right else 1
+	# FIX: Only update facing direction if there's significant horizontal distance to prevent rapid flipping
+	if is_instance_valid(player_node) and not player_is_dead:  # Only apply facing if we have a valid player
+		var abs_x_diff = abs(vector_to_player.x)
+		if abs_x_diff > 5.0:  # Only flip if player is more than 5 pixels away horizontally
+			if is_instance_valid(animated_sprite): animated_sprite.flip_h = face_player_right
+			if is_instance_valid(hitbox_pivot): hitbox_pivot.scale.x = -1 if face_player_right else 1
 
-	# Apply acceleration/deceleration towards the target velocity
-	var acceleration = speed * delta * 4 # Adjust acceleration factor if needed
-	velocity = velocity.move_toward(target_velocity, acceleration)
+	# Apply smooth acceleration/deceleration towards the target velocity
+	# Separate acceleration for horizontal and vertical movement for better control
+	var horizontal_acceleration = acceleration * delta
+	var vertical_acc = vertical_acceleration * delta
+	
+	# Apply horizontal acceleration
+	velocity.x = move_toward(velocity.x, target_velocity.x, horizontal_acceleration)
+	# Apply vertical acceleration
+	velocity.y = move_toward(velocity.y, target_velocity.y, vertical_acc)
 
+
+# --- Enhanced AI Functions ---
+func update_player_tracking(delta: float) -> void:
+	if not is_instance_valid(player_node): return
+	
+	var current_player_pos = player_node.global_position
+	if last_player_position != Vector2.ZERO:
+		# Calculate player velocity for prediction
+		player_velocity = (current_player_pos - last_player_position) / delta
+		player_velocity = player_velocity.clamp(Vector2(-500, -500), Vector2(500, 500)) # Clamp to reasonable values
+	
+	last_player_position = current_player_pos
+
+func predict_player_position() -> Vector2:
+	if not is_instance_valid(player_node): return global_position
+	var predicted_pos = player_node.global_position + (player_velocity * prediction_time)
+	return predicted_pos
+
+func get_distance_to_predicted_player() -> float:
+	var predicted_pos = predict_player_position()
+	return global_position.distance_to(predicted_pos)
+
+func should_enter_defensive_mode() -> bool:
+	var health_percentage = float(current_hp) / float(max_hp)
+	return health_percentage <= defensive_mode_threshold
+
+func can_perform_combo() -> bool:
+	var time_since_last_action = Time.get_ticks_msec() / 1000.0 - last_action_time
+	return combo_count > 0 and time_since_last_action < 2.0 and randf() < combo_chance
 
 # --- Action Decision Logic ---
 func choose_action() -> void:
@@ -328,38 +424,106 @@ func choose_action() -> void:
 			_change_state(State.IDLE) # Go idle if conditions not met
 		return
 
-	var vector_to_player = player_node.global_position - global_position
+	# Update defensive mode status
+	is_in_defensive_mode = should_enter_defensive_mode()
+	
+	# Use predicted position for better targeting
+	var predicted_player_pos = predict_player_position()
+	var vector_to_player = predicted_player_pos - global_position
 	var distance_sq = vector_to_player.length_squared() # Use squared distance for efficiency
+	# OPTIMIZATION: Cache absolute differences to avoid repeated abs() calls
 	var x_diff = abs(vector_to_player.x)
 	var y_diff = abs(vector_to_player.y)
 	var is_low_hp = current_hp <= max_hp * low_health_threshold_percent
+	var actual_distance = sqrt(distance_sq)
 
 	# --- Update Facing Direction Immediately ---
 	var face_right = (vector_to_player.x > 0)
-	if is_instance_valid(animated_sprite): animated_sprite.flip_h = face_right
-	if is_instance_valid(hitbox_pivot): hitbox_pivot.scale.x = -1 if face_right else 1
+	# FIX: Only update facing direction if there's significant horizontal distance to prevent rapid flipping
+	if x_diff > 5.0:  # Only flip if player is more than 5 pixels away horizontally
+		if is_instance_valid(animated_sprite): animated_sprite.flip_h = face_right
+		if is_instance_valid(hitbox_pivot): hitbox_pivot.scale.x = -1 if face_right else 1
 
 	# --- Define Viability Conditions ---
 	var slice_viable = (x_diff <= protractor_slice_range) and (y_diff <= protractor_slice_max_y_diff)
 	var jab_viable = (distance_sq <= pencil_jab_range * pencil_jab_range)
 	var should_prioritize_vertical_for_slice = (x_diff <= protractor_slice_range) and (y_diff > protractor_slice_max_y_diff)
+	
+	# FIX: Special case for player directly underneath - use slice attack, not jab
+	var player_directly_underneath = (x_diff <= protractor_slice_range) and (y_diff > 0)  # Close horizontally, player is below
 
 	# Reset vertical priority flag before decision
 	prioritize_vertical = false
 
-	# --- Decision Tree ---
-	if is_low_hp and not is_buffed and randf() < buff_chance:
-		_initiate_action(State.MULTIPLY_BUFF, "multiplication_buff")
-		play_sound(buff_sfx_player, buff_sounds)
-	elif slice_viable:
-		_initiate_action(State.PROTRACTOR_SLICE, "protractor_slice")
-	elif should_prioritize_vertical_for_slice:
-		prioritize_vertical = true # SET FLAG to adjust Y position
-		if current_state != State.MOVE: _change_state(State.MOVE)
-	elif jab_viable:
-		_initiate_action(State.PENCIL_JAB, "pencil_jab")
+	# --- Enhanced Decision Tree ---
+	var current_time = Time.get_ticks_msec() / 1000.0
+	var time_since_last_decision = current_time - last_decision_time
+	
+	# For awkward positions (player directly underneath), enforce longer decision intervals
+	if player_directly_underneath and time_since_last_decision < decision_stability_interval:
+		return  # Skip decision this frame to prevent rapid state changes
+	
+	# Track action pattern
+	if action_pattern.size() >= 5:
+		action_pattern.pop_front()
+	
+	# Defensive mode behavior - retreat and buff more often
+	if is_in_defensive_mode:
+		if actual_distance < retreat_distance and not is_buffed and randf() < buff_chance * 1.5:
+			_initiate_action(State.MULTIPLY_BUFF, "multiplication_buff")
+			play_sound(buff_sfx_player, buff_sounds)
+			action_pattern.append("buff")
+			last_decision_time = current_time
+		elif actual_distance < retreat_distance:
+			# Retreat by moving away from player
+			var retreat_direction = -vector_to_player.normalized()
+			velocity.x = retreat_direction.x * speed * 0.8
+			if current_state != State.MOVE: _change_state(State.MOVE)
+		elif slice_viable and can_perform_combo():
+			_initiate_action(State.PROTRACTOR_SLICE, "protractor_slice")
+			action_pattern.append("slice")
+			last_decision_time = current_time
+		elif jab_viable and can_perform_combo():
+			_initiate_action(State.PENCIL_JAB, "pencil_jab")
+			action_pattern.append("jab")
+			last_decision_time = current_time
+		else:
+			if current_state != State.MOVE: _change_state(State.MOVE)
+	# Normal aggressive behavior
 	else:
-		if current_state != State.MOVE: _change_state(State.MOVE)
+		# Buff priority when low HP
+		if is_low_hp and not is_buffed and randf() < buff_chance:
+			_initiate_action(State.MULTIPLY_BUFF, "multiplication_buff")
+			play_sound(buff_sfx_player, buff_sounds)
+			action_pattern.append("buff")
+			last_decision_time = current_time
+		# Combo attacks for more challenging gameplay
+		elif slice_viable and can_perform_combo():
+			_initiate_action(State.PROTRACTOR_SLICE, "protractor_slice")
+			action_pattern.append("slice")
+			last_decision_time = current_time
+		elif jab_viable and can_perform_combo():
+			_initiate_action(State.PENCIL_JAB, "pencil_jab")
+			action_pattern.append("jab")
+			last_decision_time = current_time
+		# Standard attack priority
+		elif slice_viable:
+			_initiate_action(State.PROTRACTOR_SLICE, "protractor_slice")
+			action_pattern.append("slice")
+			last_decision_time = current_time
+		elif player_directly_underneath:
+			_initiate_action(State.PROTRACTOR_SLICE, "protractor_slice")
+			action_pattern.append("slice")
+			last_decision_time = current_time
+		elif jab_viable:
+			_initiate_action(State.PENCIL_JAB, "pencil_jab")
+			action_pattern.append("jab")
+			last_decision_time = current_time
+		elif should_prioritize_vertical_for_slice:
+			prioritize_vertical = true
+			if current_state != State.MOVE: _change_state(State.MOVE)
+		else:
+			if current_state != State.MOVE: _change_state(State.MOVE)
 
 # --- Action Initiation Helper ---
 func _initiate_action(new_state: State, anim_name: String) -> void:
@@ -367,6 +531,14 @@ func _initiate_action(new_state: State, anim_name: String) -> void:
 	can_act = false # Prevent new actions until this one finishes
 	prioritize_vertical = false # Stop prioritizing vertical if attacking/buffing
 	attack_hit_registered_this_action = false # Reset hit flag for the new action
+	
+	# Track combo and timing for enhanced AI
+	if new_state == State.PENCIL_JAB or new_state == State.PROTRACTOR_SLICE:
+		combo_count += 1
+		last_action_time = Time.get_ticks_msec() / 1000.0
+	elif new_state == State.MULTIPLY_BUFF:
+		combo_count = 0 # Reset combo when buffing
+	
 	_change_state(new_state)
 	play_animation(anim_name)
 
@@ -437,6 +609,7 @@ func take_damage(amount: int, _damage_source_node: Node = null, damage_source_po
 		velocity = knockback_direction * error_state_knockback_strength
 
 		_expire_buff() # Taking a critical hit removes buff
+		combo_count = 0 # Reset combo when taking significant damage
 
 	# else: HIGH HEALTH REACTION (Non-Interrupting) - Do nothing extra if not low HP and not parry stunned
 
@@ -596,6 +769,12 @@ func _transition_to_idle_after_action():
 
 	can_act = true # Allow new decisions
 	_change_state(State.IDLE)
+	
+	# Reset combo count after a delay (prevents infinite combos)
+	var time_since_last_action = Time.get_ticks_msec() / 1000.0 - last_action_time
+	if time_since_last_action > 3.0:
+		combo_count = 0
+	
 	# Optional: Add a small delay before next AI tick?
 	ai_timer = ai_cooldown_base * randf_range(0.1, 0.3) # Short delay
 
